@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetMap - My Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background: var(--card-bg, #ffffff);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .profile-photo-wrapper {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid var(--primary, #3b82f6);
+            cursor: pointer;
+        }
+        .profile-photo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            text-align: center;
+            padding: 8px 0;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .profile-photo-wrapper:hover .photo-overlay {
+            opacity: 1;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 600px) {
+            .form-grid { grid-template-columns: 1fr; }
+        }
+        #photoInput { display: none; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="dashboard.html" class="logo">
+                <i class="fa-solid fa-map-location-dot"></i> MeetMap
+            </a>
+            <div class="nav-links">
+                <a href="dashboard.html" class="btn btn-outline" id="dashBtn">Back to Dashboard</a>
+                <button class="btn btn-primary" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="profile-container">
+            <h2>My Profile</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Manage your account details and upload a photo.</p>
+            
+            <form id="profileForm">
+                <div class="profile-header">
+                    <div class="profile-photo-wrapper" onclick="document.getElementById('photoInput').click()">
+                        <img id="profilePreview" class="profile-photo" src="https://via.placeholder.com/150?text=Upload+Photo" alt="Profile Photo">
+                        <div class="photo-overlay"><i class="fa-solid fa-camera"></i> Change</div>
+                    </div>
+                    <input type="file" id="photoInput" accept="image/*">
+                    <div style="flex: 1">
+                        <h3 id="displayName" style="margin-bottom: 0.5rem; font-size: 1.5rem;">User Name</h3>
+                        <p id="displayEmail" style="color: var(--text-muted);">user@example.com</p>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="profName">Full Name</label>
+                        <input type="text" id="profName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profCity">City (Location)</label>
+                        <input type="text" id="profCity" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profDob">Date of Birth</label>
+                        <input type="date" id="profDob" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profPhone">Phone Number</label>
+                        <input type="tel" id="profPhone" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="profAgeGroup">Age Group</label>
+                        <select id="profAgeGroup" class="form-control" required>
+                            <option value="">Select Age Group</option>
+                            <option value="Under 18">Under 18</option>
+                            <option value="18-25">18-25</option>
+                            <option value="26-35">26-35</option>
+                            <option value="36-50">36-50</option>
+                            <option value="51+">51+</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Areas of Interest</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px;">
+                            <label><input type="checkbox" name="profInterest" value="Creative"> Creative</label>
+                            <label><input type="checkbox" name="profInterest" value="Sports"> Sports</label>
+                            <label><input type="checkbox" name="profInterest" value="Tech"> Tech</label>
+                            <label><input type="checkbox" name="profInterest" value="Local Event"> Local Event</label>
+                            <label><input type="checkbox" name="profInterest" value="Exhibition"> Exhibition</label>
+                            <label><input type="checkbox" name="profInterest" value="Gathering"> Gathering</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; align-items: center; gap: 1rem;">
+                    <span id="saveStatus" style="color: #22c55e; display: none;"><i class="fa-solid fa-check"></i> Profile Updated</span>
+                    <button type="submit" class="btn btn-accent" style="padding: 0.75rem 2rem;">Save Changes</button>
+                    <div id="profError" class="mt-3 text-center" style="color: #ef4444; display: none;"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+            let user = JSON.parse(userStr);
+            let uploadedPhotoBase64 = user.photoBase64 || null;
+
+            // Populate existing fields
+            document.getElementById('displayName').textContent = user.name;
+            document.getElementById('displayEmail').textContent = user.email;
+            
+            document.getElementById('profName').value = user.name || '';
+            document.getElementById('profCity').value = user.city || '';
+            document.getElementById('profDob').value = user.dateOfBirth || '';
+            document.getElementById('profPhone').value = user.phoneNumber || '';
+            document.getElementById('profAgeGroup').value = user.ageGroup || '';
+            
+            if (user.photoBase64) {
+                document.getElementById('profilePreview').src = user.photoBase64;
+            }
+
+            // Populate checkboxes
+            if (user.areaOfInterest) {
+                const interests = user.areaOfInterest.split(', ');
+                document.querySelectorAll('input[name="profInterest"]').forEach(cb => {
+                    if (interests.includes(cb.value)) cb.checked = true;
+                });
+            }
+
+            // Photo Upload handler
+            document.getElementById('photoInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    uploadedPhotoBase64 = event.target.result;
+                    document.getElementById('profilePreview').src = uploadedPhotoBase64;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Save changes
+            document.getElementById('profileForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const interestsCheckboxes = document.querySelectorAll('input[name="profInterest"]:checked');
+                const areaOfInterest = Array.from(interestsCheckboxes).map(cb => cb.value).join(', ');
+
+                const updatedData = {
+                    name: document.getElementById('profName').value,
+                    city: document.getElementById('profCity').value,
+                    dateOfBirth: document.getElementById('profDob').value,
+                    phoneNumber: document.getElementById('profPhone').value,
+                    ageGroup: document.getElementById('profAgeGroup').value,
+                    areaOfInterest: areaOfInterest,
+                    photoBase64: uploadedPhotoBase64
+                };
+
+                const errorDiv = document.getElementById('profError');
+                errorDiv.style.display = 'none';
+                
+                try {
+                    const res = await fetch(`/api/auth/user/${user.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(updatedData)
+                    });
+                    
+                    if(res.ok) {
+                        const newUserData = await res.json();
+                        localStorage.setItem('user', JSON.stringify(newUserData));
+                        user = newUserData;
+                        
+                        document.getElementById('displayName').textContent = user.name;
+                        
+                        const status = document.getElementById('saveStatus');
+                        status.style.display = 'inline';
+                        setTimeout(() => status.style.display = 'none', 3000);
+                    } else {
+                        const data = await res.json();
+                        errorDiv.textContent = data.message || 'Failed to update profile';
+                        errorDiv.style.display = 'block';
+                    }
+                } catch (err) {
+                    errorDiv.textContent = 'Network error during save';
+                    errorDiv.style.display = 'block';
+                }
+            });
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            });
+        });
+    </script>
+</body>
+</html>

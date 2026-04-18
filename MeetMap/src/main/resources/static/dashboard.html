@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetMap - Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="dashboard.html" class="logo">
+                <i class="fa-solid fa-map-location-dot"></i> MeetMap
+            </a>
+            <div class="search-bar" style="max-width: 400px;">
+                <i class="fa-solid fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Search events...">
+            </div>
+            <div class="nav-links">
+                <span id="userLocationDisplay" style="color: var(--text-muted); font-size: 0.9rem;">
+                    <i class="fa-solid fa-location-dot"></i> <span id="locationText">Loading...</span>
+                </span>
+                <a href="#" class="btn btn-outline" id="favoritesBtn">Favorites</a>
+                <button class="btn btn-primary" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <section class="hero" style="padding: 2rem 0;">
+            <h1 style="font-size: 2.5rem;">Your way to what's happening </h1>
+            <p>Discover the best <span id="categoryHighlight">events</span> in <span id="cityHighlight">your
+                    city</span>.</p>
+        </section>
+
+        <div class="filters" id="categoryFilters">
+            <button class="filter-btn active" data-cat="">All</button>
+            <button class="filter-btn" data-cat="Music">Music</button>
+            <button class="filter-btn" data-cat="Tech">Tech</button>
+            <button class="filter-btn" data-cat="Sports">Sports</button>
+            <button class="filter-btn" data-cat="Workshops">Workshops</button>
+            <button class="filter-btn" data-cat="Festivals">Festivals</button>
+        </div>
+
+        <h2 class="mb-3">Trending Events</h2>
+        <div class="event-grid" id="eventsGrid">
+            <!-- Events will be populated here -->
+        </div>
+    </div>
+
+    <!-- Spin the Wheel Modal -->
+    <div class="modal" id="wheelModal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeWheelModal">&times;</button>
+            <h2>🎉 Spin & Win! 🎉</h2>
+            <p>First-time user? Spin to get a discount on your first booking!</p>
+            <div class="wheel-container">
+                <div class="pointer"></div>
+                <div class="wheel" id="wheel"></div>
+            </div>
+            <button class="btn btn-accent spin-btn" id="spinBtn">Spin the Wheel</button>
+            <p id="wheelResult" class="mt-3 font-weight-bold" style="font-size: 1.25rem; color: var(--primary);"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+            const user = JSON.parse(userStr);
+
+            // Set Location
+            document.getElementById('locationText').textContent = user.city;
+            document.getElementById('cityHighlight').textContent = user.city;
+
+            // Simple spin the wheel logic for firsthand users
+            if (!localStorage.getItem('spinDiscount_' + user.id)) {
+                setTimeout(() => { document.getElementById('wheelModal').classList.add('active'); }, 1000);
+            }
+
+            document.getElementById('closeWheelModal').addEventListener('click', () => {
+                document.getElementById('wheelModal').classList.remove('active');
+            });
+
+            document.getElementById('spinBtn').addEventListener('click', () => {
+                const wheel = document.getElementById('wheel');
+                const resultText = document.getElementById('wheelResult');
+                // Random spins between 3 and 6 full rotations + random angle
+                const randomDeg = Math.floor(Math.random() * 360) + (360 * 5);
+                wheel.style.transform = `rotate(${randomDeg}deg)`;
+
+                setTimeout(() => {
+                    const finalDeg = randomDeg % 360;
+                    let discount = 0;
+                    if (finalDeg >= 0 && finalDeg < 120) discount = 5;
+                    else if (finalDeg >= 120 && finalDeg < 240) discount = 20;
+                    else discount = 10;
+
+                    resultText.textContent = `You won a ${discount}% discount!`;
+                    localStorage.setItem('spinDiscount_' + user.id, discount);
+                    setTimeout(() => {
+                        document.getElementById('wheelModal').classList.remove('active');
+                    }, 3000);
+                }, 3000);
+            });
+
+            // Fetch and Display Events
+            let currentCategory = '';
+            let currentSearch = '';
+            const eventsGrid = document.getElementById('eventsGrid');
+
+            async function loadEvents() {
+                eventsGrid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1;">Loading events...</p>';
+                try {
+                    let url = `/api/events?city=${user.city}`;
+                    if (currentCategory) url += `&category=${currentCategory}`;
+                    if (currentSearch) url += `&search=${currentSearch}`;
+
+                    const res = await fetch(url);
+                    const events = await res.json();
+
+                    // Fetch user favorites
+                    const favRes = await fetch(`/api/favorites/user/${user.id}`);
+                    const favorites = await favRes.json();
+                    const favIds = favorites.map(f => f.event.id);
+
+                    if (events.length === 0) {
+                        eventsGrid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1;">No events found matching your criteria.</p>';
+                        return;
+                    }
+
+                    eventsGrid.innerHTML = '';
+                    events.forEach(ev => {
+                        const isFav = favIds.includes(ev.id);
+                        const dateObj = new Date(ev.dateTime);
+                        const dateString = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                        const card = document.createElement('div');
+                        card.className = 'event-card';
+                        card.innerHTML = `
+                            <div class="event-img-container">
+                                <span class="event-category-badge">${ev.category}</span>
+                                <div class="event-fav-btn ${isFav ? 'active' : ''}" data-id="${ev.id}">
+                                    <i class="fa-solid fa-heart"></i>
+                                </div>
+                                <img src="${ev.imageUrl || 'https://via.placeholder.com/400x200?text=Event+Image'}" alt="${ev.title}" class="event-img">
+                            </div>
+                            <div class="event-content">
+                                <h3 class="event-title">${ev.title}</h3>
+                                <div class="event-details">
+                                    <div class="event-detail-item">
+                                        <i class="fa-regular fa-calendar"></i> ${dateString}
+                                    </div>
+                                    <div class="event-detail-item">
+                                        <i class="fa-solid fa-location-dot"></i> ${ev.venue}, ${ev.city}
+                                    </div>
+                                </div>
+                                <div class="event-price">$${ev.price.toFixed(2)}</div>
+                                <a href="event.html?id=${ev.id}" class="btn btn-outline text-center" style="width: 100%;">View Details & Book</a>
+                            </div>
+                        `;
+                        eventsGrid.appendChild(card);
+                    });
+
+                    // Add Favorite listeners
+                    document.querySelectorAll('.event-fav-btn').forEach(btn => {
+                        btn.addEventListener('click', async function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const evId = this.getAttribute('data-id');
+                            const favRes = await fetch('/api/favorites', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId: user.id, eventId: evId })
+                            });
+                            const favData = await favRes.json();
+                            if (favData.status === 'added') {
+                                this.classList.add('active');
+                            } else {
+                                this.classList.remove('active');
+                            }
+                        });
+                    });
+                } catch (e) {
+                    eventsGrid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1; color: red;">Error fetching events.</p>';
+                }
+            }
+
+            // Filters
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentCategory = e.target.getAttribute('data-cat');
+                    document.getElementById('categoryHighlight').textContent = currentCategory ? currentCategory + ' events' : 'events';
+                    loadEvents();
+                });
+            });
+
+            // Search
+            let searchTimeout;
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentSearch = e.target.value;
+                    loadEvents();
+                }, 500);
+            });
+
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('user');
+                window.location.href = 'index.html';
+            });
+
+            loadEvents();
+        });
+    </script>
+</body>
+
+</html>

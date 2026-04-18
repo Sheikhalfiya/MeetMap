@@ -1,0 +1,17 @@
+com\meetmap\repository\EventRepository.class
+com\meetmap\controller\EventController.class
+com\meetmap\model\Event.class
+com\meetmap\config\CorsConfig.class
+com\meetmap\model\User.class
+com\meetmap\config\GlobalExceptionHandler.class
+com\meetmap\repository\FavoriteRepository.class
+com\meetmap\repository\AdminRepository.class
+com\meetmap\repository\UserRepository.class
+com\meetmap\MeetmapApplication.class
+com\meetmap\model\Admin.class
+com\meetmap\model\Booking.class
+com\meetmap\repository\BookingRepository.class
+com\meetmap\controller\AuthController.class
+com\meetmap\model\Favorite.class
+com\meetmap\controller\FavoriteController.class
+com\meetmap\controller\BookingController.class

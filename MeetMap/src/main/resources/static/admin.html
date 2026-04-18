@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetMap - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .admin-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            min-height: calc(100vh - 80px);
+        }
+
+        .sidebar {
+            background: white;
+            border-right: 1px solid var(--border);
+            padding: 2rem 1rem;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+        }
+
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background: var(--bg-color);
+            color: var(--primary);
+        }
+
+        .admin-content {
+            padding: 2rem;
+            background: var(--bg-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background: var(--bg-color);
+            font-weight: 600;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-muted);
+            margin-right: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .action-btn:hover {
+            color: var(--primary);
+        }
+
+        .action-btn.delete {
+            color: #ef4444;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container-fluid"
+            style="padding:0 2rem; display:flex; justify-content:space-between; align-items:center;">
+            <a href="admin.html" class="logo">
+                <i class="fa-solid fa-map-location-dot"></i> MeetMap Admin
+            </a>
+            <button class="btn btn-primary" id="adminLogoutBtn">Logout</button>
+        </div>
+    </nav>
+
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-view="dashboard">Dashboard Overview</a></li>
+                <li><a href="#" data-view="events">Manage Events</a></li>
+                <li><a href="#" data-view="bookings">View Bookings</a></li>
+            </ul>
+        </aside>
+
+        <main class="admin-content">
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="content-view">
+                <h2 class="mb-4">Dashboard Overview</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3 id="statTotalEvents">0</h3>
+                        <p>Total Events</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="statTotalBookings" style="color: var(--accent);">0</h3>
+                        <p>Total Bookings</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Events View -->
+            <div id="view-events" class="content-view hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center;" class="mb-4">
+                    <h2>Manage Events</h2>
+                    <button class="btn btn-accent" id="btnAddEvent"><i class="fa-solid fa-plus"></i> Add Event</button>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Date / Time</th>
+                            <th>City</th>
+                            <th>Price</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bookings View -->
+            <div id="view-bookings" class="content-view hidden">
+                <h2 class="mb-4">All Bookings</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Book ID</th>
+                            <th>User Name</th>
+                            <th>Event Title</th>
+                            <th>Tickets</th>
+                            <th>Total Price ($)</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingsTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Event Modal (Add / Edit) -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content" style="max-width: 600px; text-align: left;">
+            <button class="close-modal" id="closeEventModal">&times;</button>
+            <h2 class="mb-4" id="eventModalTitle">Add New Event</h2>
+            <form id="eventForm">
+                <input type="hidden" id="eventId">
+
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="evTitle" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="evDesc" class="form-control" rows="3"></textarea>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="evCat" class="form-control">
+                            <option value="Music">Music</option>
+                            <option value="Tech">Tech</option>
+                            <option value="Sports">Sports</option>
+                            <option value="Workshops">Workshops</option>
+                            <option value="Festivals">Festivals</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Price ($)</label>
+                        <input type="number" step="0.01" id="evPrice" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Date & Time</label>
+                    <input type="datetime-local" id="evDate" class="form-control" required>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                    <div class="form-group">
+                        <label>Venue</label>
+                        <input type="text" id="evVenue" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" id="evCity" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Map Coordinates (e.g., specific landmark name or lat,lng)</label>
+                    <input type="text" id="evCoord" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Image URL</label>
+                    <input type="url" id="evImage" class="form-control">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Event</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const adminStr = localStorage.getItem('admin');
+            if (!adminStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Navigation logic
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    document.querySelectorAll('.sidebar-menu a').forEach(l => l.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    const view = e.target.getAttribute('data-view');
+                    document.querySelectorAll('.content-view').forEach(v => v.classList.add('hidden'));
+                    document.getElementById('view-' + view).classList.remove('hidden');
+
+                    if (view === 'events') fetchEvents();
+                    if (view === 'bookings') fetchBookings();
+                    if (view === 'dashboard') loadStats();
+                });
+            });
+
+            document.getElementById('adminLogoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('admin');
+                window.location.href = 'index.html';
+            });
+
+            // Make sure these are globally scoped or managed correctly for edit/delete functions attached to window
+            window.eventsList = [];
+
+            // Fetch Functions
+            async function loadStats() {
+                try {
+                    const reqEv = await fetch('/api/events');
+                    const evData = await reqEv.json();
+                    document.getElementById('statTotalEvents').textContent = evData.length;
+
+                    const reqBk = await fetch('/api/bookings/admin');
+                    const bkData = await reqBk.json();
+                    document.getElementById('statTotalBookings').textContent = bkData.length;
+                } catch (e) { console.error('Error loading stats'); }
+            }
+
+            async function fetchEvents() {
+                try {
+                    const res = await fetch('/api/events');
+                    window.eventsList = await res.json();
+                    const tbody = document.getElementById('eventsTableBody');
+                    tbody.innerHTML = '';
+
+                    if (window.eventsList.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No events found.</td></tr>';
+                        return;
+                    }
+
+                    window.eventsList.forEach(ev => {
+                        const dateStr = new Date(ev.dateTime).toLocaleString();
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${ev.id}</td>
+                                <td>${ev.title}</td>
+                                <td>${dateStr}</td>
+                                <td>${ev.city}</td>
+                                <td>$${ev.price.toFixed(2)}</td>
+                                <td>
+                                    <button class="action-btn" onclick="editEvent(${ev.id})"><i class="fa-solid fa-edit"></i></button>
+                                    <button class="action-btn delete" onclick="deleteEvent(${ev.id})"><i class="fa-solid fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                } catch (e) { console.error('Error fetching events'); }
+            }
+
+            async function fetchBookings() {
+                try {
+                    const res = await fetch('/api/bookings/admin');
+                    const bookings = await res.json();
+                    const tbody = document.getElementById('bookingsTableBody');
+                    tbody.innerHTML = '';
+
+                    if (bookings.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No bookings found.</td></tr>';
+                        return;
+                    }
+
+                    bookings.forEach(bk => {
+                        const dateStr = new Date(bk.bookingDate).toLocaleString();
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${bk.id}</td>
+                                <td>${bk.user.name}</td>
+                                <td>${bk.event.title}</td>
+                                <td>${bk.tickets}</td>
+                                <td>$${bk.totalPrice.toFixed(2)}</td>
+                                <td>${dateStr}</td>
+                            </tr>
+                        `;
+                    });
+                } catch (e) { console.error('Error fetching bookings'); }
+            }
+
+            // Event Modal Logic
+            const eventModal = document.getElementById('eventModal');
+            document.getElementById('btnAddEvent').addEventListener('click', () => {
+                document.getElementById('eventForm').reset();
+                document.getElementById('eventId').value = '';
+                document.getElementById('eventModalTitle').textContent = 'Add New Event';
+                eventModal.classList.add('active');
+            });
+            document.getElementById('closeEventModal').addEventListener('click', () => {
+                eventModal.classList.remove('active');
+            });
+
+            document.getElementById('eventForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const id = document.getElementById('eventId').value;
+                const body = {
+                    title: document.getElementById('evTitle').value,
+                    description: document.getElementById('evDesc').value,
+                    category: document.getElementById('evCat').value,
+                    price: parseFloat(document.getElementById('evPrice').value),
+                    dateTime: document.getElementById('evDate').value,
+                    venue: document.getElementById('evVenue').value,
+                    city: document.getElementById('evCity').value,
+                    mapCoordinates: document.getElementById('evCoord').value,
+                    imageUrl: document.getElementById('evImage').value
+                };
+
+                try {
+                    let url = '/api/events';
+                    let method = 'POST';
+                    if (id) {
+                        url += `/${id}`;
+                        method = 'PUT';
+                    }
+
+                    const res = await fetch(url, {
+                        method: method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (res.ok) {
+                        eventModal.classList.remove('active');
+                        fetchEvents();
+                    } else {
+                        alert("Error saving event.");
+                    }
+                } catch (err) {
+                    alert('Network error.');
+                }
+            });
+
+            window.editEvent = function (id) {
+                const ev = window.eventsList.find(e => e.id === id);
+                if (ev) {
+                    document.getElementById('eventId').value = ev.id;
+                    document.getElementById('evTitle').value = ev.title;
+                    document.getElementById('evDesc').value = ev.description;
+                    document.getElementById('evCat').value = ev.category;
+                    document.getElementById('evPrice').value = ev.price;
+                    document.getElementById('evDate').value = ev.dateTime.slice(0, 16); // format to datetime-local
+                    document.getElementById('evVenue').value = ev.venue;
+                    document.getElementById('evCity').value = ev.city;
+                    document.getElementById('evCoord').value = ev.mapCoordinates;
+                    document.getElementById('evImage').value = ev.imageUrl;
+
+                    document.getElementById('eventModalTitle').textContent = 'Edit Event';
+                    eventModal.classList.add('active');
+                }
+            };
+
+            window.deleteEvent = async function (id) {
+                if (confirm("Are you sure you want to delete this event?")) {
+                    try {
+                        const res = await fetch(`/api/events/${id}`, { method: 'DELETE' });
+                        if (res.ok) fetchEvents();
+                        else alert("Failed to delete event.");
+                    } catch (e) { alert("Network error."); }
+                }
+            };
+
+            // Call initial stats
+            loadStats();
+        });
+    </script>
+</body>
+
+</html>

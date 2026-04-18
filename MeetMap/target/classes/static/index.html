@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetMap - Connect to Events</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="index.html" class="logo">
+                <i class="fa-solid fa-map-location-dot"></i> MeetMap
+            </a>
+            <div class="nav-links">
+                <a href="#" class="btn btn-outline" id="navAdminBtn">Admin Panel</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="auth-wrapper container">
+        <div class="card auth-container">
+            <div class="auth-tabs">
+                <div class="auth-tab active" id="tabLogin">Login</div>
+                <div class="auth-tab" id="tabSignup">Sign Up</div>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" class="form-control" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" required placeholder="********">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                <div id="loginError" class="mt-3 text-center" style="color: #ef4444; display: none;"></div>
+            </form>
+
+            <!-- Signup Form -->
+            <form id="signupForm" class="hidden">
+                <div class="form-group">
+                    <label for="signupName">Full Name</label>
+                    <input type="text" id="signupName" class="form-control" required placeholder="Your Name">
+                </div>
+                <div class="form-group">
+                    <label for="signupEmail">Email</label>
+                    <input type="email" id="signupEmail" class="form-control" required placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="signupPassword">Password</label>
+                    <input type="password" id="signupPassword" class="form-control" required placeholder="********">
+                </div>
+                <div class="form-group">
+                    <label for="signupCity">City (Location)</label>
+                    <input type="text" id="signupCity" class="form-control" required placeholder="Your City">
+                </div>
+                <button type="submit" class="btn btn-accent" style="width: 100%;">Create Account</button>
+                <div id="signupError" class="mt-3 text-center" style="color: #ef4444; display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div class="modal" id="adminModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <button class="close-modal" id="closeAdminModal">&times;</button>
+            <h2 class="mb-4">Admin Access</h2>
+            <form id="adminLoginForm">
+                <div class="form-group text-left">
+                    <label for="adminEmail">Admin Email</label>
+                    <input type="email" id="adminEmail" class="form-control" required value="admin@meetmap.com">
+                </div>
+                <div class="form-group text-left">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" class="form-control" required value="admin123">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Login as Admin</button>
+                <div id="adminError" class="mt-3 text-center" style="color: #ef4444; display: none;"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('user')) {
+                window.location.href = 'dashboard.html';
+            }
+            if (localStorage.getItem('admin')) {
+                window.location.href = 'admin.html';
+            }
+
+            const tabLogin = document.getElementById('tabLogin');
+            const tabSignup = document.getElementById('tabSignup');
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+
+            tabLogin.addEventListener('click', () => {
+                tabLogin.classList.add('active');
+                tabSignup.classList.remove('active');
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+            });
+
+            tabSignup.addEventListener('click', () => {
+                tabSignup.classList.add('active');
+                tabLogin.classList.remove('active');
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            });
+
+            // Login Logic
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('loginEmail').value;
+                const password = document.getElementById('loginPassword').value;
+                const errorDiv = document.getElementById('loginError');
+
+                try {
+                    const res = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('user', JSON.stringify(data));
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        errorDiv.textContent = data.message || 'Login failed';
+                        errorDiv.style.display = 'block';
+                    }
+                } catch (err) {
+                    errorDiv.textContent = 'Network error';
+                    errorDiv.style.display = 'block';
+                }
+            });
+
+            // Signup Logic
+            signupForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('signupName').value;
+                const email = document.getElementById('signupEmail').value;
+                const password = document.getElementById('signupPassword').value;
+                const city = document.getElementById('signupCity').value;
+                const errorDiv = document.getElementById('signupError');
+
+                try {
+                    const res = await fetch('/api/auth/signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, password, city })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert('Account created! Please log in.');
+                        tabLogin.click();
+                        document.getElementById('loginEmail').value = email;
+                    } else {
+                        errorDiv.textContent = data.message || 'Signup failed';
+                        errorDiv.style.display = 'block';
+                    }
+                } catch (err) {
+                    errorDiv.textContent = 'Network error';
+                    errorDiv.style.display = 'block';
+                }
+            });
+
+            // Admin Logic
+            const adminModal = document.getElementById('adminModal');
+            document.getElementById('navAdminBtn').addEventListener('click', (e) => {
+                e.preventDefault();
+                adminModal.classList.add('active');
+            });
+            document.getElementById('closeAdminModal').addEventListener('click', () => {
+                adminModal.classList.remove('active');
+            });
+
+            document.getElementById('adminLoginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('adminEmail').value;
+                const password = document.getElementById('adminPassword').value;
+                const errorDiv = document.getElementById('adminError');
+
+                try {
+                    const res = await fetch('/api/auth/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        localStorage.setItem('admin', JSON.stringify(data));
+                        window.location.href = 'admin.html';
+                    } else {
+                        errorDiv.textContent = data.message || 'Invalid admin credentials';
+                        errorDiv.style.display = 'block';
+                    }
+                } catch (err) {
+                    errorDiv.textContent = 'Network error';
+                    errorDiv.style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

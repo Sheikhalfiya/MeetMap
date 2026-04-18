@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetMap - Event Details</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .event-banner {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: var(--radius-lg);
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .event-main {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+
+        @media(max-width: 768px) {
+            .event-main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .booking-card {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="container nav-container">
+            <a href="dashboard.html" class="logo">
+                <i class="fa-solid fa-map-location-dot"></i> MeetMap
+            </a>
+            <div class="nav-links">
+                <a href="dashboard.html" class="btn btn-outline" style="border:none;">Back to Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4" id="eventContent">
+        <p class="text-center">Loading event details...</p>
+    </div>
+
+    <!-- Booking Confirmation Modal -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-content">
+            <h2 class="mb-3" style="color: var(--accent);"><i class="fa-solid fa-circle-check"></i> Booking Confirmed!
+            </h2>
+            <p>Your tickets have been booked successfully. You can view them in your profile.</p>
+            <button class="btn btn-primary mt-4" style="width: 100%;" id="btnGoDashboard">Go back to Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                window.location.href = 'index.html';
+                return;
+            }
+            const user = JSON.parse(userStr);
+            const urlParams = new URLSearchParams(window.location.search);
+            const eventId = urlParams.get('id');
+
+            if (!eventId) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            const eventContent = document.getElementById('eventContent');
+            let currentEvent = null;
+
+            try {
+                const res = await fetch(`/api/events/${eventId}`);
+                if (!res.ok) {
+                    eventContent.innerHTML = '<p class="text-center" style="color:red;">Event not found.</p>';
+                    return;
+                }
+                currentEvent = await res.json();
+
+                const dateObj = new Date(currentEvent.dateTime);
+                const dateString = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                // Check for discount
+                const discount = localStorage.getItem('spinDiscount_' + user.id) || 0;
+
+                eventContent.innerHTML = `
+                    <div style="position: relative;">
+                        <img src="${currentEvent.imageUrl || 'https://via.placeholder.com/1200x400?text=Event+Banner'}" alt="${currentEvent.title}" class="event-banner">
+                        <span class="event-category-badge" style="font-size: 1rem; padding: 0.5rem 1rem;">${currentEvent.category}</span>
+                    </div>
+                    <div class="event-main">
+                        <div>
+                            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">${currentEvent.title}</h1>
+                            <div class="event-details" style="font-size: 1rem; margin-bottom: 2rem;">
+                                <div class="event-detail-item mb-2" style="font-size: 1.1rem; color: var(--text-main);">
+                                    <i class="fa-regular fa-calendar text-primary"></i> ${dateString} at ${timeString}
+                                </div>
+                                <div class="event-detail-item mb-2" style="font-size: 1.1rem; color: var(--text-main);">
+                                    <i class="fa-solid fa-location-dot text-primary"></i> ${currentEvent.venue}, ${currentEvent.city}
+                                </div>
+                            </div>
+                            
+                            <h3 class="mb-2">About this event</h3>
+                            <p style="white-space: pre-line; margin-bottom: 2rem; font-size: 1.1rem;">${currentEvent.description}</p>
+                            
+                            <!-- Google Maps iFrame -->
+                            <h3 class="mb-2">Location</h3>
+                            <div style="width: 100%; height: 300px; border-radius: var(--radius-lg); overflow: hidden; background: #e5e7eb;">
+                                ${currentEvent.mapCoordinates ?
+                        `<iframe width="100%" height="100%" frameborder="0" src="https://maps.google.com/maps?q=${encodeURIComponent(currentEvent.mapCoordinates)}&output=embed"></iframe>` :
+                        `<iframe width="100%" height="100%" frameborder="0" src="https://maps.google.com/maps?q=${encodeURIComponent(currentEvent.venue + ',' + currentEvent.city)}&output=embed"></iframe>`
+                    }
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <div class="booking-card">
+                                <h3 class="text-center mb-4">Book Tickets</h3>
+                                <div class="text-center mb-4">
+                                    <span style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">$${currentEvent.price.toFixed(2)}</span>
+                                    <span style="color: var(--text-muted);"> / ticket</span>
+                                </div>
+                                
+                                <form id="bookingForm">
+                                    <div class="form-group">
+                                        <label>Number of Tickets</label>
+                                        <select id="ticketSelect" class="form-control">
+                                            <option value="1">1 Ticket</option>
+                                            <option value="2">2 Tickets</option>
+                                            <option value="3">3 Tickets</option>
+                                            <option value="4">4 Tickets</option>
+                                            <option value="5">5 Tickets</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
+                                    
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: var(--text-muted);">
+                                        <span>Subtotal</span>
+                                        <span id="subtotalPrice">$${currentEvent.price.toFixed(2)}</span>
+                                    </div>
+                                    
+                                    ${Number(discount) > 0 ? `
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: var(--accent);">
+                                        <span>First-time Discount (${discount}%)</span>
+                                        <span id="discountAmt">-$${(currentEvent.price * discount / 100).toFixed(2)}</span>
+                                    </div>
+                                    ` : ''}
+                                    
+                                    <div style="display: flex; justify-content: space-between; margin-top: 1rem; font-weight: 700; font-size: 1.25rem;">
+                                        <span>Total</span>
+                                        <span id="totalPrice">$${(currentEvent.price - (currentEvent.price * discount / 100)).toFixed(2)}</span>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary mt-4" style="width: 100%;">Confirm Booking</button>
+                                    <p class="text-center mt-2" style="font-size: 0.8rem; color: var(--text-muted);">No payment required for booking confirmation.</p>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Logic for ticket cost calculation
+                const ticketSelect = document.getElementById('ticketSelect');
+                ticketSelect.addEventListener('change', (e) => {
+                    const t = Number(e.target.value);
+                    const subtotal = currentEvent.price * t;
+                    let dAmt = 0;
+                    if (Number(discount) > 0) dAmt = subtotal * (discount / 100);
+                    const finalTotal = subtotal - dAmt;
+
+                    document.getElementById('subtotalPrice').textContent = `$${subtotal.toFixed(2)}`;
+                    if (document.getElementById('discountAmt')) {
+                        document.getElementById('discountAmt').textContent = `-$${dAmt.toFixed(2)}`;
+                    }
+                    document.getElementById('totalPrice').textContent = `$${finalTotal.toFixed(2)}`;
+                });
+
+                // Submit booking
+                document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    try {
+                        const tickets = Number(ticketSelect.value);
+                        const bookRes = await fetch('/api/bookings', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                userId: user.id,
+                                eventId: currentEvent.id,
+                                tickets: tickets,
+                                discount: discount
+                            })
+                        });
+
+                        if (bookRes.ok) {
+                            if (Number(discount) > 0) {
+                                localStorage.removeItem('spinDiscount_' + user.id);
+                            }
+                            document.getElementById('bookingModal').classList.add('active');
+                        } else {
+                            alert("Booking failed. Please try again.");
+                        }
+                    } catch (err) {
+                        alert("Network error. Please try again.");
+                    }
+                });
+
+            } catch (e) {
+                eventContent.innerHTML = '<p class="text-center" style="color:red;">Error loading event.</p>';
+            }
+
+            document.getElementById('btnGoDashboard').addEventListener('click', () => {
+                window.location.href = 'dashboard.html';
+            });
+        });
+    </script>
+</body>
+
+</html>
