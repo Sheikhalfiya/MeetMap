@@ -27,9 +27,7 @@ public class User {
     
     private String phoneNumber;
     
-    @Lob 
-    @Column(columnDefinition="LONGTEXT")
-    private String photoBase64;
+
 
     public User() {}
 
@@ -56,6 +54,5 @@ public class User {
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
     
-    public String getPhotoBase64() { return photoBase64; }
-    public void setPhotoBase64(String photoBase64) { this.photoBase64 = photoBase64; }
+
 }

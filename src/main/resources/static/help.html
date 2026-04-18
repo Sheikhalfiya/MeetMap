@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetMap - Help & Support</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #e8533a;
+            --primary-light: #ff7a62;
+            --bg: #faf9f7;
+            --card-bg: #ffffff;
+            --text: #1a1a1a;
+            --muted: #777;
+            --border: #ebebeb;
+            --shadow: 0 2px 16px rgba(0, 0, 0, 0.07);
+            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.13);
+            --radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── Navbar ── */
+        .navbar {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 0.9rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .back-btn:hover {
+            color: var(--primary);
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem;
+            color: var(--primary);
+            text-decoration: none;
+            margin-left: auto;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            text-align: center;
+            padding: 3.5rem 1rem 2rem;
+            animation: fadeUp 0.6s ease 0.2s both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                transform: translateY(24px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .hero h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.6rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .hero p {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        /* ── Search ── */
+        .search-wrap {
+            max-width: 520px;
+            margin: 1.5rem auto 0;
+            position: relative;
+            animation: fadeUp 0.6s ease 0.35s both;
+        }
+
+        .search-wrap i {
+            position: absolute;
+            left: 1.1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+        }
+
+        .search-wrap input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.8rem;
+            border: 1.5px solid var(--border);
+            border-radius: 50px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            background: #fff;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-wrap input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(232, 83, 58, 0.1);
+        }
+
+        /* ── Map Section ── */
+        .map-section {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            animation: fadeUp 0.6s ease 0.45s both;
+        }
+
+        #helpMap {
+            width: 100%;
+            height: 200px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        /* ── FAQ Grid ── */
+        .faq-section {
+            max-width: 1100px;
+            margin: 0 auto 2rem;
+            padding: 0 1.5rem;
+        }
+
+        .faq-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 860px) {
+            .faq-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 1.9rem;
+            }
+        }
+
+        .faq-col h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: var(--text);
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .faq-col h3.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Accordion ── */
+        .accordion {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 0.6rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: box-shadow 0.25s;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s, transform 0.4s, box-shadow 0.25s;
+        }
+
+        .accordion.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .accordion:hover {
+            box-shadow: var(--shadow-hover);
+        }
+
+        .acc-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.1rem;
+            cursor: pointer;
+            gap: 0.8rem;
+            user-select: none;
+        }
+
+        .acc-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .acc-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .accordion.open .acc-icon {
+            background: rgba(232, 83, 58, 0.1);
+            color: var(--primary);
+        }
+
+        .acc-title {
+            font-size: 0.92rem;
+            font-weight: 500;
+            color: var(--text);
+            line-height: 1.4;
+        }
+
+        .acc-chevron {
+            color: var(--muted);
+            font-size: 0.8rem;
+            transition: transform 0.3s;
+            flex-shrink: 0;
+        }
+
+        .accordion.open .acc-chevron {
+            transform: rotate(180deg);
+            color: var(--primary);
+        }
+
+        .acc-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .acc-body-inner {
+            padding: 0 1.1rem 1rem 3.5rem;
+            font-size: 0.88rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        /* ── Contact Section ── */
+        .contact-section {
+            max-width: 1100px;
+            margin: 0 auto 3rem;
+            padding: 0 1.5rem;
+        }
+
+        .contact-section h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        @media (max-width: 680px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .faq-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .contact-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.2rem 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: var(--shadow);
+            transition: box-shadow 0.25s, transform 0.25s;
+            opacity: 0;
+            transform: translateY(20px);
+            /* will be made visible via JS */
+        }
+
+        .contact-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .contact-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-3px);
+        }
+
+        .contact-card-left h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .contact-card-left p {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .contact-card-right {
+            color: var(--muted);
+        }
+
+        .contact-card:hover .contact-card-right {
+            color: var(--primary);
+        }
+
+        /* Call Us special card */
+        .call-card {
+            background: linear-gradient(135deg, #fff8f7, #fff);
+            border-color: rgba(232, 83, 58, 0.2);
+        }
+
+        .call-card .call-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(232, 83, 58, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 1.5rem;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(232, 83, 58, 0.25);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(232, 83, 58, 0);
+            }
+        }
+
+        /* ── Floating Chat Button ── */
+        .chat-fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 4px 20px rgba(232, 83, 58, 0.4);
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: fabIn 0.5s ease 1s both;
+            z-index: 200;
+        }
+
+        @keyframes fabIn {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .chat-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 28px rgba(232, 83, 58, 0.5);
+        }
+
+        /* Staggered delays for accordion items */
+        .acc-delay-0 {
+            transition-delay: 0s;
+        }
+
+        .acc-delay-1 {
+            transition-delay: 0.07s;
+        }
+
+        .acc-delay-2 {
+            transition-delay: 0.14s;
+        }
+
+        .contact-delay-0 {
+            transition: opacity 0.4s 0s, transform 0.4s 0s, box-shadow 0.25s, transform 0.25s;
+        }
+
+        .contact-delay-1 {
+            transition: opacity 0.4s 0.1s, transform 0.4s 0.1s, box-shadow 0.25s, transform 0.25s;
+        }
+
+        .contact-delay-2 {
+            transition: opacity 0.4s 0.2s, transform 0.4s 0.2s, box-shadow 0.25s, transform 0.25s;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="dashboard.html" class="back-btn">
+            <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <a href="dashboard.html" class="logo"><i class="fa-solid fa-map-location-dot"></i> MeetMap</a>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero">
+        <h1>Help &amp; Support</h1>
+        <p>Find answers, manage bookings, and reach our team — all in one place.</p>
+        <div class="search-wrap">
+            <i class="fa-solid fa-search"></i>
+            <input type="text" id="faqSearch" placeholder="Search for a topic…">
+        </div>
+    </div>
+
+    <!-- Map -->
+    <div class="map-section">
+        <div id="helpMap"></div>
+    </div>
+
+    <!-- FAQ Grid -->
+    <div class="faq-section">
+        <div class="faq-grid">
+
+            <!-- Column 1: Account & Profile -->
+            <div class="faq-col" data-col="0">
+                <h3>Account &amp; Profile</h3>
+                <div class="accordion acc-delay-0" data-col="0">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-regular fa-user"></i></div>
+                            <span class="acc-title">How to update profile information?</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">Go to <strong>Accounts &amp; Settings</strong> from the side menu.
+                            Tap <em>Edit Profile</em> to update your name, city, phone, or date of birth. Changes are
+                            saved automatically.</div>
+                    </div>
+                </div>
+                <div class="accordion acc-delay-1" data-col="0">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-solid fa-lock"></i></div>
+                            <span class="acc-title">Forgotten your password?</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">On the login screen, tap <em>Forgot Password</em>. Enter your
+                            registered email and we'll send you a reset link within a few minutes. Check your spam
+                            folder if it doesn't arrive.</div>
+                    </div>
+                </div>
+                <div class="accordion acc-delay-2" data-col="0">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-regular fa-envelope"></i></div>
+                            <span class="acc-title">Changing email notifications.</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">Head to <strong>Accounts &amp; Settings → Notifications</strong>.
+                            Toggle on or off the categories you want (event reminders, offers, weekly digest). Changes
+                            take effect immediately.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 2: Bookings & Tickets -->
+            <div class="faq-col" data-col="1">
+                <h3>Bookings &amp; Tickets</h3>
+                <div class="accordion acc-delay-0" data-col="1">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-solid fa-ticket"></i></div>
+                            <span class="acc-title">How to view my purchased tickets?</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">Open the side menu and tap <strong>Your Orders</strong>. All
+                            confirmed bookings appear here with QR codes. You can also download tickets as PDF for
+                            offline access.</div>
+                    </div>
+                </div>
+                <div class="accordion acc-delay-1" data-col="1">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-solid fa-circle-xmark"></i></div>
+                            <span class="acc-title">Process for canceling a booking?</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">Go to <strong>Your Orders</strong>, select the booking, and tap
+                            <em>Cancel Booking</em>. Refunds are processed within 5–7 business days depending on the
+                            event's cancellation policy.</div>
+                    </div>
+                </div>
+                <div class="accordion acc-delay-2" data-col="1">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-solid fa-circle-info"></i></div>
+                            <span class="acc-title">Troubleshooting a booking issue.</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">If payment was deducted but no confirmation arrived, wait 10 minutes
+                            and refresh. If it still hasn't appeared, submit a support ticket below with your payment
+                            reference number.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Rewards & Payments -->
+            <div class="faq-col" data-col="2">
+                <h3>Rewards &amp; Payments</h3>
+                <div class="accordion acc-delay-0" data-col="2">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-solid fa-star"></i></div>
+                            <span class="acc-title">How do points work?</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">You earn 1 MeetPoint for every ₹10 spent. Points can be redeemed at
+                            checkout for discounts. Points expire after 12 months of account inactivity.</div>
+                    </div>
+                </div>
+                <div class="accordion acc-delay-1" data-col="2">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-solid fa-layer-group"></i></div>
+                            <span class="acc-title">Can I use multiple rewards?</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">You can combine MeetPoints with one promo code per transaction. Bank
+                            cashback offers and spin-wheel discounts are applied automatically at checkout and cannot be
+                            stacked with each other.</div>
+                    </div>
+                </div>
+                <div class="accordion acc-delay-2" data-col="2">
+                    <div class="acc-header">
+                        <div class="acc-header-left">
+                            <div class="acc-icon"><i class="fa-solid fa-credit-card"></i></div>
+                            <span class="acc-title">Accepted payment methods.</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down acc-chevron"></i>
+                    </div>
+                    <div class="acc-body">
+                        <div class="acc-body-inner">We accept UPI, credit/debit cards (Visa, Mastercard, RuPay), Net
+                            Banking, and MeetMap Gift Cards. All transactions are secured with 256-bit encryption.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Contact Section -->
+    <div class="contact-section">
+        <h2>Contact Support</h2>
+        <div class="contact-grid">
+
+            <a href="#" class="contact-card contact-delay-0">
+                <div class="contact-card-left">
+                    <h4>Submit a Support Ticket</h4>
+                    <p>Form link for a Support Ticket</p>
+                </div>
+                <div class="contact-card-right">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a href="#" class="contact-card contact-delay-1">
+                <div class="contact-card-left">
+                    <h4>View My Support Tickets</h4>
+                    <p>Track your open and resolved tickets</p>
+                </div>
+                <div class="contact-card-right">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <div class="contact-card call-card contact-delay-2">
+                <div class="contact-card-left">
+                    <h4>Call Us</h4>
+                    <p>+91 (1)234-6860</p>
+                    <p style="font-size:0.75rem; margin-top:0.2rem;">Mon–Sat, 9 AM – 8 PM</p>
+                </div>
+                <div class="call-icon">
+                    <i class="fa-solid fa-headset"></i>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Floating Chat Button -->
+    <button class="chat-fab" title="Live Chat">
+        <i class="fa-regular fa-comment-dots"></i>
+    </button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            /* ── Map ── */
+            const map = L.map('helpMap', { zoomControl: true, scrollWheelZoom: false }).setView([20.5937, 78.9629], 4);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    if (user.city) {
+                        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(user.city)}`)
+                            .then(r => r.json()).then(data => {
+                                if (data && data[0]) {
+                                    const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+                                    map.setView([lat, lng], 11);
+                                    L.marker([lat, lng]).addTo(map).bindPopup(`<b>MeetMap Support</b><br>${user.city}`).openPopup();
+                                }
+                            }).catch(() => { });
+                    }
+                } catch (e) { }
+            }
+
+            /* ── Accordion ── */
+            document.querySelectorAll('.acc-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const accordion = header.closest('.accordion');
+                    const body = accordion.querySelector('.acc-body');
+                    const isOpen = accordion.classList.contains('open');
+
+                    // Close all in same column
+                    const col = accordion.getAttribute('data-col');
+                    document.querySelectorAll(`.accordion[data-col="${col}"]`).forEach(a => {
+                        a.classList.remove('open');
+                        a.querySelector('.acc-body').style.maxHeight = null;
+                    });
+
+                    if (!isOpen) {
+                        accordion.classList.add('open');
+                        body.style.maxHeight = body.scrollHeight + 'px';
+                    }
+                });
+            });
+
+            /* ── Scroll-triggered reveal ── */
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.accordion, .faq-col h3, .contact-card').forEach(el => observer.observe(el));
+
+            /* ── Search filter ── */
+            document.getElementById('faqSearch').addEventListener('input', function () {
+                const q = this.value.toLowerCase();
+                document.querySelectorAll('.accordion').forEach(acc => {
+                    const title = acc.querySelector('.acc-title').textContent.toLowerCase();
+                    acc.style.display = title.includes(q) ? '' : 'none';
+                });
+            });
+
+            /* ── Chat fab ── */
+            document.querySelector('.chat-fab').addEventListener('click', () => {
+                alert('Live chat coming soon! Please submit a support ticket or call us.');
+            });
+        });
+    </script>
+</body>
+
+</html>

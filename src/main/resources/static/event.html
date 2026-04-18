@@ -38,6 +38,20 @@
             position: sticky;
             top: 100px;
         }
+        .payment-method {
+            flex: 1; padding: 0.75rem; text-align: center; border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; transition: background 0.2s; font-size: 0.85rem;
+        }
+        .payment-method.active {
+            border-color: var(--primary); background: rgba(29, 78, 216, 0.05); color: var(--primary); font-weight: bold;
+        }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
     </style>
 </head>
 
@@ -98,8 +112,8 @@
                 const dateString = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-                // Check for discount
-                const discount = localStorage.getItem('spinDiscount_' + user.id) || 0;
+                // Check user tokens
+                const tokens = parseInt(localStorage.getItem('userTokens_' + user.id) || '0');
 
                 eventContent.innerHTML = `
                     <div style="position: relative;">
@@ -133,7 +147,7 @@
                         
                         <div>
                             <div class="booking-card">
-                                <h3 class="text-center mb-4">Book Tickets</h3>
+                                <h3 class="text-center mb-4">Payment Summary</h3>
                                 <div class="text-center mb-4">
                                     <span style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">₹${currentEvent.price.toFixed(2)}</span>
                                     <span style="color: var(--text-muted);"> / ticket</span>
@@ -153,52 +167,99 @@
                                     
                                     <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0;">
                                     
+                                    <div style="background: rgba(255, 215, 0, 0.1); border: 1px solid gold; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <div style="font-weight: bold; color: #b8860b;"><i class="fa-solid fa-coins"></i> Use Tokens</div>
+                                            <div style="font-size: 0.85rem; color: var(--text-muted);">Balance: ${tokens} tokens</div>
+                                        </div>
+                                        <div>
+                                            <label class="switch">
+                                                <input type="checkbox" id="useTokensCb" ${tokens === 0 ? 'disabled' : ''}>
+                                                <span class="slider"></span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-bottom: 1.5rem;">
+                                        <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">Payment Method</label>
+                                        <div style="display: flex; gap: 0.5rem;" id="paymentMethods">
+                                            <div class="payment-method active"><i class="fa-solid fa-credit-card"></i> Card</div>
+                                            <div class="payment-method"><i class="fa-brands fa-google-pay"></i> UPI</div>
+                                            <div class="payment-method"><i class="fa-solid fa-building-columns"></i> Netbanking</div>
+                                        </div>
+                                    </div>
+                                    
                                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: var(--text-muted);">
                                         <span>Subtotal</span>
                                         <span id="subtotalPrice">₹${currentEvent.price.toFixed(2)}</span>
                                     </div>
                                     
-                                    ${Number(discount) > 0 ? `
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: var(--accent);">
-                                        <span>First-time Discount (${discount}%)</span>
-                                        <span id="discountAmt">-₹${(currentEvent.price * discount / 100).toFixed(2)}</span>
+                                    <div id="discountRow" style="display: none; justify-content: space-between; margin-bottom: 0.5rem; color: var(--accent);">
+                                        <span>Tokens Applied</span>
+                                        <span id="discountAmt">-₹0.00</span>
                                     </div>
-                                    ` : ''}
                                     
                                     <div style="display: flex; justify-content: space-between; margin-top: 1rem; font-weight: 700; font-size: 1.25rem;">
                                         <span>Total</span>
-                                        <span id="totalPrice">₹${(currentEvent.price - (currentEvent.price * discount / 100)).toFixed(2)}</span>
+                                        <span id="totalPrice">₹${currentEvent.price.toFixed(2)}</span>
                                     </div>
                                     
-                                    <button type="submit" class="btn btn-primary mt-4" style="width: 100%;">Confirm Booking</button>
-                                    <p class="text-center mt-2" style="font-size: 0.8rem; color: var(--text-muted);">No payment required for booking confirmation.</p>
+                                    <button type="submit" id="confirmBtn" class="btn btn-primary mt-4" style="width: 100%;">Proceed to Payment <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i></button>
                                 </form>
                             </div>
                         </div>
                     </div>
                 `;
 
+                // Payment Method UI
+                document.querySelectorAll('.payment-method').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.payment-method').forEach(b => b.classList.remove('active'));
+                        e.currentTarget.classList.add('active');
+                    });
+                });
+
                 // Logic for ticket cost calculation
                 const ticketSelect = document.getElementById('ticketSelect');
-                ticketSelect.addEventListener('change', (e) => {
-                    const t = Number(e.target.value);
+                const useTokensCb = document.getElementById('useTokensCb');
+                
+                function updatePrice() {
+                    const t = Number(ticketSelect.value);
                     const subtotal = currentEvent.price * t;
-                    let dAmt = 0;
-                    if (Number(discount) > 0) dAmt = subtotal * (discount / 100);
-                    const finalTotal = subtotal - dAmt;
+                    let tokensToUse = 0;
+                    
+                    if (useTokensCb && useTokensCb.checked) {
+                        tokensToUse = Math.min(subtotal, tokens); // 1 token = 1 RS deduction
+                    }
+                    
+                    const finalTotal = subtotal - tokensToUse;
 
                     document.getElementById('subtotalPrice').textContent = `₹${subtotal.toFixed(2)}`;
-                    if (document.getElementById('discountAmt')) {
-                        document.getElementById('discountAmt').textContent = `-₹${dAmt.toFixed(2)}`;
+                    const discountRow = document.getElementById('discountRow');
+                    if (tokensToUse > 0) {
+                        discountRow.style.display = 'flex';
+                        document.getElementById('discountAmt').textContent = `-₹${tokensToUse.toFixed(2)}`;
+                    } else {
+                        discountRow.style.display = 'none';
                     }
                     document.getElementById('totalPrice').textContent = `₹${finalTotal.toFixed(2)}`;
-                });
+                }
+
+                ticketSelect.addEventListener('change', updatePrice);
+                if (useTokensCb) useTokensCb.addEventListener('change', updatePrice);
 
                 // Submit booking
                 document.getElementById('bookingForm').addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    const confirmBtn = document.getElementById('confirmBtn');
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerHTML = '<i class="fa-solid fa-spinner spinner"></i> Processing Payment...';
+                    
+                    const tickets = Number(ticketSelect.value);
+                    let discount = 0;
+                    if(useTokensCb && useTokensCb.checked) discount = Math.min(currentEvent.price * tickets, tokens);
+
                     try {
-                        const tickets = Number(ticketSelect.value);
                         const bookRes = await fetch('/api/bookings', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -211,15 +272,26 @@
                         });
 
                         if (bookRes.ok) {
-                            if (Number(discount) > 0) {
-                                localStorage.removeItem('spinDiscount_' + user.id);
+                            // deduct tokens locally
+                            if(discount > 0) {
+                                localStorage.setItem('userTokens_' + user.id, tokens - discount);
                             }
-                            document.getElementById('bookingModal').classList.add('active');
+                            
+                            // Mock 2 second payment processing feeling
+                            setTimeout(() => {
+                                document.getElementById('bookingModal').classList.add('active');
+                                confirmBtn.innerHTML = '<i class="fa-solid fa-check"></i> Successful';
+                            }, 2000);
+                            
                         } else {
                             alert("Booking failed. Please try again.");
+                            confirmBtn.disabled = false;
+                            confirmBtn.innerHTML = 'Proceed to Payment <i class="fa-solid fa-arrow-right"></i>';
                         }
                     } catch (err) {
                         alert("Network error. Please try again.");
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = 'Proceed to Payment <i class="fa-solid fa-arrow-right"></i>';
                     }
                 });
 

@@ -52,7 +52,7 @@ public class AuthController {
             response.put("areaOfInterest", user.getAreaOfInterest());
             response.put("ageGroup", user.getAgeGroup());
             response.put("phoneNumber", user.getPhoneNumber());
-            response.put("photoBase64", user.getPhotoBase64());
+
             return ResponseEntity.ok(response);
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid credentials."));
@@ -72,7 +72,7 @@ public class AuthController {
         if (updatedUser.getAreaOfInterest() != null) existingUser.setAreaOfInterest(updatedUser.getAreaOfInterest());
         if (updatedUser.getAgeGroup() != null) existingUser.setAgeGroup(updatedUser.getAgeGroup());
         if (updatedUser.getPhoneNumber() != null) existingUser.setPhoneNumber(updatedUser.getPhoneNumber());
-        if (updatedUser.getPhotoBase64() != null) existingUser.setPhotoBase64(updatedUser.getPhotoBase64());
+
         
         User savedUser = userRepository.save(existingUser);
         
@@ -86,7 +86,7 @@ public class AuthController {
         response.put("areaOfInterest", savedUser.getAreaOfInterest());
         response.put("ageGroup", savedUser.getAgeGroup());
         response.put("phoneNumber", savedUser.getPhoneNumber());
-        response.put("photoBase64", savedUser.getPhotoBase64());
+
         return ResponseEntity.ok(response);
     }
 

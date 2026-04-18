@@ -83,11 +83,6 @@
             
             <form id="profileForm">
                 <div class="profile-header">
-                    <div class="profile-photo-wrapper" onclick="document.getElementById('photoInput').click()">
-                        <img id="profilePreview" class="profile-photo" src="https://via.placeholder.com/150?text=Upload+Photo" alt="Profile Photo">
-                        <div class="photo-overlay"><i class="fa-solid fa-camera"></i> Change</div>
-                    </div>
-                    <input type="file" id="photoInput" accept="image/*">
                     <div style="flex: 1">
                         <h3 id="displayName" style="margin-bottom: 0.5rem; font-size: 1.5rem;">User Name</h3>
                         <p id="displayEmail" style="color: var(--text-muted);">user@example.com</p>
@@ -131,7 +126,9 @@
                             <label><input type="checkbox" name="profInterest" value="Local Event"> Local Event</label>
                             <label><input type="checkbox" name="profInterest" value="Exhibition"> Exhibition</label>
                             <label><input type="checkbox" name="profInterest" value="Gathering"> Gathering</label>
+                            <label><input type="checkbox" name="profInterest" value="Custom" id="customInterestCbProf"> Custom...</label>
                         </div>
+                        <input type="text" id="customInterestInputProf" class="form-control mt-2 hidden" placeholder="Enter custom interest" style="width: 100%;">
                     </div>
                 </div>
 
@@ -152,7 +149,6 @@
                 return;
             }
             let user = JSON.parse(userStr);
-            let uploadedPhotoBase64 = user.photoBase64 || null;
 
             // Populate existing fields
             document.getElementById('displayName').textContent = user.name;
@@ -163,30 +159,38 @@
             document.getElementById('profDob').value = user.dateOfBirth || '';
             document.getElementById('profPhone').value = user.phoneNumber || '';
             document.getElementById('profAgeGroup').value = user.ageGroup || '';
-            
-            if (user.photoBase64) {
-                document.getElementById('profilePreview').src = user.photoBase64;
-            }
 
-            // Populate checkboxes
+            // Check Custom Interests on load
             if (user.areaOfInterest) {
+                const standardInterests = ['Creative', 'Sports', 'Tech', 'Local Event', 'Exhibition', 'Gathering'];
                 const interests = user.areaOfInterest.split(', ');
+                let customFound = [];
                 document.querySelectorAll('input[name="profInterest"]').forEach(cb => {
                     if (interests.includes(cb.value)) cb.checked = true;
                 });
+                interests.forEach(int => {
+                    if(!standardInterests.includes(int)) {
+                        customFound.push(int);
+                    }
+                });
+                if(customFound.length > 0) {
+                    const customCb = document.getElementById('customInterestCbProf');
+                    const customInput = document.getElementById('customInterestInputProf');
+                    customCb.checked = true;
+                    customInput.value = customFound.join(', ');
+                    customInput.classList.remove('hidden');
+                }
             }
 
-            // Photo Upload handler
-            document.getElementById('photoInput').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    uploadedPhotoBase64 = event.target.result;
-                    document.getElementById('profilePreview').src = uploadedPhotoBase64;
-                };
-                reader.readAsDataURL(file);
+            // Handle Custom Toggle
+            document.getElementById('customInterestCbProf').addEventListener('change', (e) => {
+                const customInput = document.getElementById('customInterestInputProf');
+                if(e.target.checked) {
+                    customInput.classList.remove('hidden');
+                } else {
+                    customInput.classList.add('hidden');
+                    customInput.value = '';
+                }
             });
 
             // Save changes
@@ -194,7 +198,14 @@
                 e.preventDefault();
                 
                 const interestsCheckboxes = document.querySelectorAll('input[name="profInterest"]:checked');
-                const areaOfInterest = Array.from(interestsCheckboxes).map(cb => cb.value).join(', ');
+                let areaOfInterestArr = Array.from(interestsCheckboxes).map(cb => cb.value);
+                const customCb = document.getElementById('customInterestCbProf');
+                const customInput = document.getElementById('customInterestInputProf');
+                if (customCb.checked && customInput.value.trim() !== '') {
+                    areaOfInterestArr = areaOfInterestArr.filter(v => v !== 'Custom');
+                    areaOfInterestArr.push(customInput.value.trim());
+                }
+                const areaOfInterest = areaOfInterestArr.join(', ');
 
                 const updatedData = {
                     name: document.getElementById('profName').value,
@@ -202,8 +213,7 @@
                     dateOfBirth: document.getElementById('profDob').value,
                     phoneNumber: document.getElementById('profPhone').value,
                     ageGroup: document.getElementById('profAgeGroup').value,
-                    areaOfInterest: areaOfInterest,
-                    photoBase64: uploadedPhotoBase64
+                    areaOfInterest: areaOfInterest
                 };
 
                 const errorDiv = document.getElementById('profError');

@@ -64,6 +64,9 @@ public class EventController {
             event.setCity(eventDetails.getCity());
             event.setMapCoordinates(eventDetails.getMapCoordinates());
             event.setImageUrl(eventDetails.getImageUrl());
+            if (eventDetails.getIsTopEvent() != null) {
+                event.setIsTopEvent(eventDetails.getIsTopEvent());
+            }
             Event updatedEvent = eventRepository.save(event);
             return ResponseEntity.ok(updatedEvent);
         }).orElse(ResponseEntity.notFound().build());

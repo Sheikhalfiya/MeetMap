@@ -6,30 +6,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MeetMap - Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .filter-btn {
-            background: none;
-            border: none;
-            font-size: 0.9rem;
-            cursor: pointer;
-            padding: 0.5rem 0;
-            color: inherit;
+        :root {
+            --bg-body: #ffffff;
+            --bg-nav: #ffffff;
+            --bg-card: #ffffff;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #eeeeee;
+            --drawer-bg: #f9f9f9;
+            --input-bg: #f5f5f5;
         }
 
-        .filter-btn:hover,
-        .filter-btn.active {
-            color: var(--primary);
+        body.dark-mode {
+            --bg-body: #121212;
+            --bg-nav: #1e1e1e;
+            --bg-card: #252525;
+            --text-primary: #e0e0e0;
+            --text-secondary: #aaaaaa;
+            --border-color: #444444;
+            --drawer-bg: #1a1a1a;
+            --input-bg: #333333;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .navbar {
+            background-color: var(--bg-nav) !important;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid transparent;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 0.5rem 1.25rem;
+            border-radius: 99px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
             font-weight: 500;
+        }
+        .filter-btn.active {
+            background: rgba(29, 78, 216, 0.15);
+            border: 1px solid rgba(29, 78, 216, 0.5);
+            color: var(--primary);
+            box-shadow: 0 0 12px rgba(29, 78, 216, 0.3);
         }
 
         .search-bar {
-            background: #f5f5f5;
+            background: var(--input-bg);
             border-radius: 4px;
             padding: 0.5rem 1rem;
-            flex: 1;
             display: flex;
             align-items: center;
+            border: 1px solid var(--border-color);
+            transition: flex 0.3s ease;
         }
 
         .search-bar input {
@@ -38,29 +76,110 @@
             width: 100%;
             outline: none;
             margin-left: 0.5rem;
+            color: var(--text-primary);
         }
+
+        .event-card {
+            background: var(--bg-card) !important;
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-primary);
+            flex: 0 0 300px;
+            scroll-snap-align: start;
+        }
+        .event-title { color: var(--text-primary); }
+
+        .event-row {
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            padding-bottom: 1rem;
+            scrollbar-width: thin;
+            scrollbar-color: var(--primary) transparent;
+        }
+        .event-row::-webkit-scrollbar { height: 8px; }
+        .event-row::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+
+        .match-choice-section {
+            background: linear-gradient(135deg, rgba(8,80,120,0.1), rgba(133,216,206,0.1));
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            border: 1px solid var(--primary);
+        }
+
+        .token-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(45deg, #ffd700, #ff8c00);
+            color: #fff;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 10px rgba(255, 140, 0, 0.4);
+            animation: pulse-coin 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-coin {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); box-shadow: 0 2px 15px rgba(255,140,0,0.6); }
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .drawer-item { border-bottom: 1px solid var(--border-color); background: var(--bg-card); }
+        .drawer-header { background: var(--bg-nav) !important; border-bottom: 1px solid var(--border-color); }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 16px; width: 16px;
+            left: 4px; bottom: 4px;
+            background-color: white; transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 
 <body>
-    <nav class="navbar" style="padding: 0.8rem 1rem; border-bottom: none; box-shadow: none;">
+    <nav class="navbar" style="padding: 0.8rem 1rem;">
         <div class="container nav-container" style="justify-content: flex-start; gap: 2rem;">
             <a href="dashboard.html" class="logo" style="margin-right: auto;">
                 <i class="fa-solid fa-map-location-dot"></i> MeetMap
             </a>
-            <div class="search-bar" style="max-width: 50%; min-width: 300px;">
+            <div class="search-bar" style="max-width: 70%; min-width: 300px; flex: 2.5;">
                 <i class="fa-solid fa-search"></i>
                 <input type="text" id="searchInput" placeholder="Search for Events, Plays, Sports and Activities">
             </div>
             <div class="nav-links" style="margin-left: auto;">
                 <span id="userLocationDisplay"
-                    style="color: #333; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                    style="color: var(--text-primary); font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 5px 10px; border-radius: 4px; border: 1px solid var(--border-color);">
                     <span id="locationText">Loading...</span> <i class="fa-solid fa-chevron-down"
                         style="font-size: 0.8rem;"></i>
                 </span>
 
                 <div class="hamburger-menu" id="hamburgerBtn"
-                    style="cursor: pointer; margin-left: 1.5rem; font-size: 1.5rem; color: #333;">
+                    style="cursor: pointer; margin-left: 1.5rem; font-size: 1.5rem; color: var(--text-primary);">
                     <i class="fa-solid fa-bars"></i>
                 </div>
             </div>
@@ -68,233 +187,245 @@
     </nav>
 
     <!-- Sub Nav Bar -->
-    <div style="background-color: #f5f5f5; border-bottom: 1px solid #e5e5e5; padding: 0.5rem 0; font-size: 0.9rem;">
-        <div class="container" style="display: flex; justify-content: space-between;">
-            <div id="categoryFilters" style="display: flex; gap: 1.5rem; color: #333;">
+    <div style="background-color: var(--bg-nav); border-bottom: 1px solid var(--border-color); padding: 0.5rem 0; font-size: 0.9rem;">
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center; overflow: hidden;">
+            <div id="categoryFilters" style="display: flex; gap: 1rem; color: var(--text-primary); overflow-x: auto; scrollbar-width: none; white-space: nowrap; -ms-overflow-style: none; padding: 5px 0; flex: 1;">
+                <style>
+                    #categoryFilters::-webkit-scrollbar { display: none; }
+                </style>
                 <button class="filter-btn active" data-cat="">All</button>
-                <button class="filter-btn" data-cat="Music">Music</button>
-                <button class="filter-btn" data-cat="Tech">Tech</button>
-                <button class="filter-btn" data-cat="Sports">Sports</button>
-                <button class="filter-btn" data-cat="Workshops">Workshops</button>
-                <button class="filter-btn" data-cat="Festivals">Festivals</button>
             </div>
-            <div style="display: flex; gap: 1.5rem; color: #333; align-items: center;">
-                <a href="#" style="text-decoration: none; color: inherit; font-size: 0.85rem;">ListYourShow</a>
-                <a href="#" style="text-decoration: none; color: inherit; font-size: 0.85rem;">Corporates</a>
-                <a href="#" style="text-decoration: none; color: inherit; font-size: 0.85rem;">Offers</a>
-                <a href="#" style="text-decoration: none; color: inherit; font-size: 0.85rem;">Gift Cards</a>
+            <div style="display: flex; gap: 1.5rem; align-items: center; margin-left:1rem;">
+                <div class="token-badge">
+                    <i class="fa-solid fa-coins"></i> <span id="tokenCountDisplay">0</span> Tokens
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Side Drawer Menu -->
     <div id="sideDrawer"
-        style="position: fixed; top: 0; right: -350px; width: 350px; height: 100vh; background: #f4f4f4; z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); transition: right 0.3s; display: flex; flex-direction: column;">
+        style="position: fixed; top: 0; right: -350px; width: 350px; height: 100vh; background: var(--drawer-bg); z-index: 1000; box-shadow: -2px 0 10px rgba(0,0,0,0.1); transition: right 0.3s; display: flex; flex-direction: column;">
 
-        <!-- Header -->
-        <div
-            style="background: #fff; padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee;">
-            <h2 style="margin: 0; font-size: 1.5rem; color: #333;">Hey, <span id="menuUserName">User</span>!</h2>
-            <button id="closeDrawer"
-                style="background: none; border: none; font-size: 2rem; color: #666; cursor: pointer;">&times;</button>
+        <div class="drawer-header" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin: 0; font-size: 1.5rem; color: var(--text-primary);">Hey, <span id="menuUserName">User</span>!</h2>
+            <button id="closeDrawer" style="background: none; border: none; font-size: 2rem; color: var(--text-secondary); cursor: pointer;">&times;</button>
         </div>
 
-        <!-- Scrollable Menu Content -->
         <div style="overflow-y: auto; flex-grow: 1;">
-
-            <!-- Logout / Special Offers Box -->
-            <div
-                style="background: #fff; padding: 1.2rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #eee; margin-bottom: 8px;">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div
-                        style="width: 40px; height: 40px; background: #222; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
-                        <i class="fa-solid fa-gift"></i>
-                    </div>
-                    <div style="font-size: 0.95rem; color: #555; max-width: 140px; line-height: 1.3;">Stay with MeetMap
-                    </div>
-                </div>
-                <button id="logoutBtn"
-                    style="background: transparent; color: #ef4444; border: 1px solid #ef4444; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.9rem; font-weight: 500; cursor: pointer;">Logout</button>
+            
+            <div class="drawer-item" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-weight: 500; color: var(--text-primary);"><i class="fa-solid fa-moon" style="margin-right: 10px;"></i> Dark Mode</span>
+                <label class="switch">
+                    <input type="checkbox" id="darkModeToggle">
+                    <span class="slider"></span>
+                </label>
             </div>
 
-            <!-- List of options -->
-            <ul style="list-style: none; padding: 0; margin: 0; background: #fff;">
-
-                <li style="border-bottom: 1px solid #eee;">
-                    <a href="#"
-                        style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: #333;">
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                <li class="drawer-item">
+                    <a href="#" id="navNotificationsBtn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: var(--text-primary);">
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <i class="fa-regular fa-bell"
-                                style="color: #666; margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
-                            <div>
-                                <div style="font-size: 1rem; color: #333;">Notifications</div>
-                            </div>
+                            <i class="fa-regular fa-bell" style="color: var(--text-secondary); margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
+                            <div><div style="font-size: 1rem;">Notifications</div></div>
                         </div>
-                        <i class="fa-solid fa-chevron-right" style="color: #ccc; font-size: 0.9rem;"></i>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 0.9rem;"></i>
                     </a>
                 </li>
-
-                <li style="border-bottom: 1px solid #eee;">
-                    <a href="#"
-                        style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: #333;">
+                <li class="drawer-item">
+                    <a href="#" id="navTicketsBtn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: var(--text-primary);">
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <i class="fa-solid fa-bag-shopping"
-                                style="color: #666; margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
+                            <i class="fa-solid fa-ticket" style="color: var(--text-secondary); margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
                             <div>
-                                <div style="font-size: 1rem; color: #333;">Your Orders</div>
-                                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">View all your bookings &
-                                    purchases</div>
+                                <div style="font-size: 1rem;">Your Ticket</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">View all your bookings</div>
                             </div>
                         </div>
-                        <i class="fa-solid fa-lock" style="color: #ccc; font-size: 0.9rem;"></i>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 0.9rem;"></i>
                     </a>
                 </li>
-
-                <!-- User Account / Accounts & Settings -->
-                <li style="border-bottom: 1px solid #eee;">
-                    <a href="profile.html"
-                        style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: #333;">
+                <li class="drawer-item">
+                    <a href="profile.html" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: var(--text-primary);">
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <i class="fa-solid fa-gear"
-                                style="color: #666; margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
+                            <i class="fa-solid fa-gear" style="color: var(--text-secondary); margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
                             <div>
-                                <div style="font-size: 1rem; color: #333;">Accounts & Settings</div>
-                                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">User Account, Location,
-                                    Payments & More</div>
+                                <div style="font-size: 1rem;">Account</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Profile & Settings</div>
                             </div>
                         </div>
-                        <i class="fa-solid fa-chevron-right" style="color: #ccc; font-size: 0.9rem;"></i>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 0.9rem;"></i>
                     </a>
                 </li>
-
-                <!-- Help & Support -->
-                <li style="border-bottom: 1px solid #eee;">
-                    <a href="#"
-                        style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: #333;">
+                <li class="drawer-item">
+                    <a href="help.html" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: var(--text-primary);">
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <i class="fa-regular fa-comment-dots"
-                                style="color: #666; margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
+                            <i class="fa-regular fa-comment-dots" style="color: var(--text-secondary); margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
                             <div>
-                                <div style="font-size: 1rem; color: #333;">Help & Support</div>
-                                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">View commonly asked
-                                    queries and Chat</div>
+                                <div style="font-size: 1rem;">Help & Support</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">FAQs & Chat</div>
                             </div>
                         </div>
-                        <i class="fa-solid fa-chevron-right" style="color: #ccc; font-size: 0.9rem;"></i>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 0.9rem;"></i>
                     </a>
                 </li>
-
-                <!-- Contact -->
-                <li style="border-bottom: 1px solid #eee;">
-                    <a href="#"
-                        style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: #333;">
+                <li class="drawer-item">
+                    <a href="#" id="navContactBtn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: var(--text-primary);">
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <i class="fa-regular fa-envelope"
-                                style="color: #666; margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
+                            <i class="fa-regular fa-envelope" style="color: var(--text-secondary); margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
                             <div>
-                                <div style="font-size: 1rem; color: #333;">Contact</div>
-                                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">Get in touch with us
-                                    directly</div>
+                                <div style="font-size: 1rem;">Contact</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Get in touch directly</div>
                             </div>
                         </div>
-                        <i class="fa-solid fa-chevron-right" style="color: #ccc; font-size: 0.9rem;"></i>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 0.9rem;"></i>
                     </a>
                 </li>
-
-                <li style="border-bottom: 1px solid #eee;">
-                    <a href="#"
-                        style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: #333;">
+                <li class="drawer-item">
+                    <a href="#" id="navRewardsBtn" style="text-decoration: none; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; color: var(--text-primary);">
                         <div style="display: flex; gap: 1rem; align-items: flex-start;">
-                            <i class="fa-solid fa-gift"
-                                style="color: #666; margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
+                            <i class="fa-solid fa-gift" style="color: var(--text-secondary); margin-top: 3px; font-size: 1.1rem; width: 20px;"></i>
                             <div>
-                                <div style="font-size: 1rem; color: #333;">Rewards</div>
-                                <div style="font-size: 0.8rem; color: #999; margin-top: 2px;">View your rewards & unlock
-                                    new ones</div>
+                                <div style="font-size: 1rem;">Rewards</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px;">Daily Check-in</div>
                             </div>
                         </div>
-                        <i class="fa-solid fa-chevron-right" style="color: #ccc; font-size: 0.9rem;"></i>
+                        <i class="fa-solid fa-chevron-right" style="color: var(--text-secondary); font-size: 0.9rem;"></i>
                     </a>
                 </li>
             </ul>
+            <div style="padding: 1.5rem;">
+                <button id="logoutBtn" class="btn btn-outline" style="width: 100%; border-color: #ef4444; color: #ef4444;">Logout</button>
+            </div>
         </div>
     </div>
-    <div id="drawerOverlay"
-        style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none;"></div>
+    <div id="drawerOverlay" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: none;"></div>
 
-    <!-- Auto Sliding Carousel section -->
+    <!-- Carousel -->
     <div class="container mt-4 mb-4">
-        <div class="carousel-container"
-            style="position: relative; width: 100%; height: 350px; overflow: hidden; border-radius: 12px;">
-            <div id="slideTrack"
-                style="display: flex; width: 300%; height: 100%; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);">
+        <div class="carousel-container" style="position: relative; width: 100%; height: 350px; overflow: hidden; border-radius: 12px; box-shadow: var(--shadow-sm);">
+            <div id="slideTrack" style="display: flex; width: 300%; height: 100%; transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);">
                 <!-- Slide 1 -->
-                <div
-                    style="width: 33.333%; height: 100%; background: linear-gradient(to right, #001344, #00368c); display: flex; align-items: center; justify-content: space-between; padding: 2rem 5rem; color: white;">
+                <div style="width: 33.333%; height: 100%; background: linear-gradient(to right, #001344, #00368c); display: flex; align-items: center; justify-content: space-between; padding: 2rem 5rem; color: white;">
                     <div style="max-width: 60%;">
-                        <div
-                            style="font-weight: bold; background: white; color: black; display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 1rem;">
-                            SPONSORED</div>
-                        <h2 style="font-size: 3rem; margin-bottom: 0.5rem; font-family: serif; font-style: italic;">Flat
-                            5% Cashback</h2>
-                        <p style="font-size: 1.25rem; font-weight: 300; margin-bottom: 1.5rem;">Get extra cashback of
-                            ₹100 on your first MeetMap payment.</p>
-                        <button class="btn btn-primary"
-                            style="background: #e54; border: none; padding: 0.75rem 2rem; border-radius: 6px; font-size: 1.1rem;">Apply
-                            now</button>
+                        <div style="font-weight: bold; background: white; color: black; display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; margin-bottom: 1rem;">SPONSORED</div>
+                        <h2 style="font-size: 3rem; margin-bottom: 0.5rem; font-family: serif; font-style: italic;">Flat 5% Cashback</h2>
+                        <p style="font-size: 1.25rem; font-weight: 300; margin-bottom: 1.5rem;">Get extra cashback of ₹100 on your first MeetMap payment.</p>
+                        <button class="btn btn-primary" style="background: #e54; border: none; padding: 0.75rem 2rem; border-radius: 6px; font-size: 1.1rem;">Apply now</button>
                     </div>
                 </div>
                 <!-- Slide 2 -->
-                <div
-                    style="width: 33.333%; height: 100%; background: linear-gradient(to right, #4A00E0, #8E2DE2); display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
+                <div style="width: 33.333%; height: 100%; background: linear-gradient(to right, #4A00E0, #8E2DE2); display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
                     <div>
                         <h2 style="font-size: 3rem; margin-bottom: 1rem; font-weight: bold;">TATA IPL 2026</h2>
-                        <p style="font-size: 1.2rem; margin-bottom: 2rem;">Book your tickets now and witness the action
-                            live.</p>
-                        <button class="btn btn-outline"
-                            style="background: white; color: #4A00E0; border: none; border-radius: 20px;">Book
-                            Tickets</button>
+                        <p style="font-size: 1.2rem; margin-bottom: 2rem;">Book your tickets now and witness the action live.</p>
+                        <button class="btn btn-outline" style="background: white; color: #4A00E0; border: none; border-radius: 20px;">Book Tickets</button>
                     </div>
                 </div>
                 <!-- Slide 3 -->
-                <div
-                    style="width: 33.333%; height: 100%; background: linear-gradient(to right, #11998e, #38ef7d); display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
+                <div style="width: 33.333%; height: 100%; background: linear-gradient(to right, #11998e, #38ef7d); display: flex; align-items: center; justify-content: center; text-align: center; color: white;">
                     <div>
                         <h2 style="font-size: 3rem; margin-bottom: 1rem;">Exclusive VIP Pass</h2>
-                        <p style="font-size: 1.2rem; margin-bottom: 2rem;">Upgrade your experience to premium at select
-                            events.</p>
-                        <button class="btn btn-outline"
-                            style="background: white; color: #11998e; border: none; border-radius: 20px;">Learn
-                            More</button>
+                        <p style="font-size: 1.2rem; margin-bottom: 2rem;">Upgrade your experience to premium at select events.</p>
+                        <button class="btn btn-outline" style="background: white; color: #11998e; border: none; border-radius: 20px;">Learn More</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="container mt-4">
-
-        <h2 class="mb-3">Trending Events</h2>
-        <div class="event-grid" id="eventsGrid">
-            <!-- Events will be populated here -->
+    <!-- Event Categories -->
+    <div class="container mt-4 mb-5">
+        <h2 class="mb-3"><i class="fa-solid fa-star" style="color: gold;"></i> Match Your Choice</h2>
+        <div class="match-choice-section mb-5">
+            <div class="event-row" id="matchEventsRow"></div>
         </div>
+
+        <h2 class="mb-3">🔥 Top Events</h2>
+        <div class="event-row mb-5" id="topEventsRow"></div>
+
+        <h2 class="mb-3">📅 Today's Events</h2>
+        <div class="event-row mb-5" id="todayEventsRow"></div>
+        
+        <h2 class="mb-3">🌟 All Upcoming Events</h2>
+        <div class="event-row mb-5" id="allUpcomingEventsRow"></div>
+
+        <h2 class="mb-3">🕒 Past Events</h2>
+        <div class="event-row mb-5" id="pastEventsRow"></div>
     </div>
 
-    <!-- Spin the Wheel Modal -->
+    <!-- Daily Check-in Modal -->
     <div class="modal" id="wheelModal">
-        <div class="modal-content">
+        <div class="modal-content text-center">
             <button class="close-modal" id="closeWheelModal">&times;</button>
-            <h2>🎉 Spin & Win! 🎉</h2>
-            <p>First-time user? Spin to get a discount on your first booking!</p>
-            <div class="wheel-container">
-                <div class="pointer"></div>
-                <div class="wheel" id="wheel"></div>
+            <h2>🎉 Daily Rewards 🎉</h2>
+            <p style="color: var(--text-secondary);">Check in every day to earn Tokens for exciting discounts!</p>
+            <div style="margin: 2rem auto; font-size: 4rem; color: gold;">
+                <i class="fa-solid fa-calendar-check"></i>
             </div>
-            <button class="btn btn-accent spin-btn" id="spinBtn">Spin the Wheel</button>
-            <p id="wheelResult" class="mt-3 font-weight-bold" style="font-size: 1.25rem; color: var(--primary);"></p>
+            <button class="btn btn-accent spin-btn" id="spinBtn" style="font-size: 1.2rem; display: inline-flex; align-items: center; gap: 0.5rem;">Claim Today's Tokens</button>
+            <div id="wheelResult" class="mt-4 font-weight-bold" style="font-size: 1.1rem; color: var(--primary); min-height: 50px;"></div>
         </div>
     </div>
 
+    <!-- Location Modal -->
+    <div class="modal" id="locationModal">
+        <div class="modal-content" style="max-width: 600px; text-align: left; padding: 2rem;">
+            <button class="close-modal" id="closeLocationModal">&times;</button>
+            <h2 class="mb-4">Select Location</h2>
+            <div class="search-bar mb-3" style="border: 1px solid var(--border-color);">
+                <i class="fa-solid fa-location-arrow"></i>
+                <input type="text" id="locSearchInput" placeholder="Type city or location manually...">
+            </div>
+            <div id="map" style="width: 100%; height: 350px; background: #eee; border-radius: 8px;"></div>
+            <button class="btn btn-primary mt-3" id="saveLocationBtn" style="width: 100%;">Set Location</button>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div class="modal" id="notificationsModal">
+        <div class="modal-content" style="max-width: 500px; text-align: left; padding: 2rem;">
+            <button class="close-modal" id="closeNotificationsModal">&times;</button>
+            <h2 class="mb-4">Notifications</h2>
+            <div id="notificationsContent"></div>
+        </div>
+    </div>
+
+    <!-- Tickets Modal -->
+    <div class="modal" id="ticketsModal">
+        <div class="modal-content" style="max-width: 600px; text-align: left; padding: 2rem;">
+            <button class="close-modal" id="closeTicketsModal">&times;</button>
+            <h2 class="mb-4">Your Tickets</h2>
+            <div id="ticketsContent"></div>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div class="modal" id="contactModal">
+        <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2.5rem 2rem;">
+            <button class="close-modal" id="closeContactModal">&times;</button>
+            <h2 class="mb-3">Contact Us</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">How would you like to get in touch?</p>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; text-align: left; display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 1.5rem; color: var(--primary);"><i class="fa-solid fa-phone"></i></div>
+                    <div>
+                        <div style="font-weight: bold;">Call Us</div>
+                        <div style="color: var(--text-secondary);">+91 (1)234-6860</div>
+                    </div>
+                </div>
+                <div style="padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; text-align: left; display: flex; align-items: center; gap: 1rem;">
+                    <div style="font-size: 1.5rem; color: var(--primary);"><i class="fa-solid fa-envelope"></i></div>
+                    <div>
+                        <div style="font-weight: bold;">Email Us</div>
+                        <div style="color: var(--text-secondary);">support@meetmap.com</div>
+                    </div>
+                </div>
+            </div>
+            <p style="margin-top: 1.5rem; font-size: 0.9rem; color: var(--text-secondary);">You can reach out to us using any of the given methods as per your convenience.</p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const userStr = localStorage.getItem('user');
@@ -304,135 +435,280 @@
             }
             const user = JSON.parse(userStr);
 
-            // Set Location
-            document.getElementById('locationText').textContent = user.city;
-            if (document.getElementById('cityHighlight')) document.getElementById('cityHighlight').textContent = user.city;
-
-            // Simple spin the wheel logic for firsthand users
-            if (!localStorage.getItem('spinDiscount_' + user.id)) {
-                setTimeout(() => { document.getElementById('wheelModal').classList.add('active'); }, 1000);
+            // Dark Mode Init
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if(localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+                darkModeToggle.checked = true;
             }
+            darkModeToggle.addEventListener('change', (e) => {
+                if(e.target.checked) {
+                    document.body.classList.add('dark-mode');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    localStorage.setItem('theme', 'light');
+                }
+            });
 
+            // Tokens Init
+            let tokens = parseInt(localStorage.getItem('userTokens_' + user.id) || '0');
+            document.getElementById('tokenCountDisplay').textContent = tokens;
+
+            // Location
+            let userLocation = user.city;
+            document.getElementById('locationText').textContent = userLocation;
+            
+            // Map configuration
+            let locMap;
+            document.getElementById('userLocationDisplay').addEventListener('click', () => {
+                document.getElementById('locationModal').classList.add('active');
+                if(!locMap) {
+                    locMap = L.map('map').setView([21.1458, 79.0882], 10);
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(locMap);
+                    let marker = L.marker([21.1458, 79.0882]).addTo(locMap);
+                    
+                    locMap.on('click', async function(e) {
+                        marker.setLatLng(e.latlng);
+                        document.getElementById('locSearchInput').value = "Loading location...";
+                        try {
+                            const rez = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
+                            const data = await rez.json();
+                            document.getElementById('locSearchInput').value = data.address.city || data.address.town || data.address.village || data.address.county || data.display_name;
+                        } catch(err) {
+                            document.getElementById('locSearchInput').value = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+                        }
+                    });
+                }
+                setTimeout(() => locMap.invalidateSize(), 300);
+            });
+
+            document.getElementById('closeLocationModal').addEventListener('click', () => {
+                document.getElementById('locationModal').classList.remove('active');
+            });
+
+            let mapSearchTimeout;
+            document.getElementById('locSearchInput').addEventListener('input', (e) => {
+                const query = e.target.value.trim();
+                if(query.length < 3) return;
+                clearTimeout(mapSearchTimeout);
+                mapSearchTimeout = setTimeout(async () => {
+                    if(!locMap) return;
+                    try {
+                        const rez = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+                        const data = await rez.json();
+                        if(data && data.length > 0) {
+                            const lat = data[0].lat;
+                            const lon = data[0].lon;
+                            locMap.setView([lat, lon], 12);
+                            // Note: we're only panning the map here to stay responsive.
+                        }
+                    } catch(err){}
+                }, 800);
+            });
+
+            document.getElementById('saveLocationBtn').addEventListener('click', () => {
+                const searchVal = document.getElementById('locSearchInput').value.trim();
+                if(searchVal) userLocation = searchVal;
+                document.getElementById('locationText').textContent = userLocation;
+                document.getElementById('locationModal').classList.remove('active');
+                loadEvents();
+            });
+
+            // Wheel / Rewards
             document.getElementById('closeWheelModal').addEventListener('click', () => {
                 document.getElementById('wheelModal').classList.remove('active');
             });
-
-            document.getElementById('spinBtn').addEventListener('click', () => {
-                const wheel = document.getElementById('wheel');
-                const resultText = document.getElementById('wheelResult');
-                // Random spins between 3 and 6 full rotations + random angle
-                const randomDeg = Math.floor(Math.random() * 360) + (360 * 5);
-                wheel.style.transform = `rotate(${randomDeg}deg)`;
-
-                setTimeout(() => {
-                    const finalDeg = randomDeg % 360;
-                    let discount = 0;
-                    if (finalDeg >= 0 && finalDeg < 120) discount = 5;
-                    else if (finalDeg >= 120 && finalDeg < 240) discount = 20;
-                    else discount = 10;
-
-                    resultText.textContent = `You won a ${discount}% discount!`;
-                    localStorage.setItem('spinDiscount_' + user.id, discount);
-                    setTimeout(() => {
-                        document.getElementById('wheelModal').classList.remove('active');
-                    }, 3000);
-                }, 3000);
+            document.getElementById('navRewardsBtn').addEventListener('click', (e) => {
+                e.preventDefault(); closeMenuDrawer();
+                document.getElementById('wheelResult').innerHTML = '';
+                document.getElementById('wheelModal').classList.add('active');
             });
 
-            // Fetch and Display Events
+            document.getElementById('spinBtn').addEventListener('click', () => {
+                const resultText = document.getElementById('wheelResult');
+                const lastCheckin = localStorage.getItem('lastCheckin_' + user.id);
+                const todayStr = new Date().toDateString();
+                if (lastCheckin === todayStr) {
+                    resultText.innerHTML = '<div style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> You have already collected your tokens today! Come back tomorrow.</div>';
+                    return;
+                }
+
+                document.getElementById('spinBtn').disabled = true;
+                document.getElementById('spinBtn').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
+                
+                setTimeout(() => {
+                    const earnedTokens = 15; // Set 15 tokens per check-in
+                    tokens += earnedTokens;
+                    localStorage.setItem('userTokens_' + user.id, tokens);
+                    localStorage.setItem('lastCheckin_' + user.id, todayStr);
+                    document.getElementById('tokenCountDisplay').textContent = tokens;
+
+                    resultText.innerHTML = `<div style="background:var(--bg-nav); padding: 1rem; border-radius: 8px; border: 1px solid var(--primary);">
+                        <div style="font-size:1.2rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-coins" style="color: gold;"></i> You earned <b>${earnedTokens}</b> Tokens!</div>
+                        <div style="font-size:0.95rem; color:var(--text-secondary);">Use these on your next checkout.</div>
+                    </div>`;
+                    
+                    document.getElementById('spinBtn').innerHTML = 'Claim Today\'s Tokens';
+                }, 1000);
+            });
+
+            // Fetch Events
             let currentCategory = '';
             let currentSearch = '';
-            const eventsGrid = document.getElementById('eventsGrid');
 
             async function loadEvents() {
-                eventsGrid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1;">Loading events...</p>';
+                const containers = {
+                    match: document.getElementById('matchEventsRow'),
+                    top: document.getElementById('topEventsRow'),
+                    today: document.getElementById('todayEventsRow'),
+                    all: document.getElementById('allUpcomingEventsRow'),
+                    past: document.getElementById('pastEventsRow')
+                };
+                
+                Object.values(containers).forEach(c => c.innerHTML = '<p style="padding: 1rem;">Loading...</p>');
+
                 try {
-                    let url = `/api/events?city=${user.city}`;
+                    // Pass current location to endpoint (demo or actual)
+                    let url = `/api/events?city=${user.city}`; 
                     if (currentCategory) url += `&category=${currentCategory}`;
                     if (currentSearch) url += `&search=${currentSearch}`;
 
                     const res = await fetch(url);
                     const events = await res.json();
+                    
+                    let favIds = [];
+                    try {
+                        const favRes = await fetch(`/api/favorites/user/${user.id}`);
+                        const favors = await favRes.json();
+                        favIds = favors.map(f => f.event.id);
+                    } catch(e){}
 
-                    // Fetch user favorites
-                    const favRes = await fetch(`/api/favorites/user/${user.id}`);
-                    const favorites = await favRes.json();
-                    const favIds = favorites.map(f => f.event.id);
+                    // Dynamically update category filters across the entire database to ensure all categories exist
+                    try {
+                        const allEvRes = await fetch('/api/events');
+                        const allEvData = await allEvRes.json();
+                        const uniqueCats = new Set(['Music', 'Tech', 'Sports', 'Workshops', 'Festivals']);
+                        allEvData.forEach(e => { if(e.category) uniqueCats.add(e.category); });
+                        const filterContainer = document.getElementById('categoryFilters');
+                        if (filterContainer.children.length !== uniqueCats.size + 1) {
+                            let filterHtml = `<button class="filter-btn ${currentCategory===''?'active':''}" data-cat="">All</button>`;
+                            uniqueCats.forEach(cat => {
+                                filterHtml += `<button class="filter-btn ${currentCategory===cat?'active':''}" data-cat="${cat}">${cat}</button>`;
+                            });
+                            filterContainer.innerHTML = filterHtml;
+                            window.bindFilterClick(); // Re-bind events
+                        }
+                    } catch(e){}
+
+                    Object.values(containers).forEach(c => c.innerHTML = '');
 
                     if (events.length === 0) {
-                        eventsGrid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1;">No events found matching your criteria.</p>';
+                        const noFound = '<p style="padding: 1rem; color: var(--text-secondary);">No events found matching your criteria.</p>';
+                        Object.values(containers).forEach(c => c.innerHTML = noFound);
                         return;
                     }
 
-                    eventsGrid.innerHTML = '';
-                    events.forEach(ev => {
+                    const now = new Date();
+                    
+                    // Simple categorization logic for demo
+                    events.forEach((ev, index) => {
                         const isFav = favIds.includes(ev.id);
                         const dateObj = new Date(ev.dateTime);
-                        const dateString = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
+                        const dateString = dateObj.toLocaleDateString() + ' · ' + dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        
                         const card = document.createElement('div');
                         card.className = 'event-card';
                         card.innerHTML = `
-                            <div class="event-img-container">
-                                <span class="event-category-badge">${ev.category}</span>
-                                <div class="event-fav-btn ${isFav ? 'active' : ''}" data-id="${ev.id}">
+                            <div class="event-img-container" style="position: relative;">
+                                <span class="event-category-badge" style="position:absolute; top:10px; left:10px; background:var(--primary); color:white; padding:4px 8px; border-radius:4px; font-size:0.8rem; z-index:10;">${ev.category}</span>
+                                <div class="event-fav-btn ${isFav ? 'active' : ''}" data-id="${ev.id}" style="position:absolute; top:10px; right:10px; background:white; color:#ccc; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10;">
                                     <i class="fa-solid fa-heart"></i>
                                 </div>
-                                <img src="${ev.imageUrl || 'https://via.placeholder.com/400x200?text=Event+Image'}" alt="${ev.title}" class="event-img">
+                                <img src="${ev.imageUrl || 'https://via.placeholder.com/400x200?text=Event+Image'}" alt="${ev.title}" style="width:100%; height:180px; object-fit:cover; border-radius: 8px 8px 0 0;">
                             </div>
-                            <div class="event-content">
-                                <h3 class="event-title">${ev.title}</h3>
-                                <div class="event-details">
-                                    <div class="event-detail-item">
-                                        <i class="fa-regular fa-calendar"></i> ${dateString}
-                                    </div>
-                                    <div class="event-detail-item">
-                                        <i class="fa-solid fa-location-dot"></i> ${ev.venue}, ${ev.city}
-                                    </div>
+                            <div class="event-content" style="padding: 1.2rem;">
+                                <h3 class="event-title" style="margin-bottom:0.5rem; font-size:1.1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${ev.title}</h3>
+                                <div style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1rem;">
+                                    <div style="margin-bottom:5px;"><i class="fa-regular fa-calendar" style="width:16px;"></i> ${dateString}</div>
+                                    <div><i class="fa-solid fa-location-dot" style="width:16px;"></i> ${ev.venue}, ${ev.city}</div>
                                 </div>
-                                <div class="event-price">₹${ev.price.toFixed(2)}</div>
-                                <a href="event.html?id=${ev.id}" class="btn btn-outline text-center" style="width: 100%;">View Details & Book</a>
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div style="font-weight:bold; color:var(--primary); font-size:1.1rem;">₹${ev.price.toFixed(2)}</div>
+                                    <a href="event.html?id=${ev.id}" class="btn btn-primary" style="padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.85rem;">Book</a>
+                                </div>
                             </div>
                         `;
-                        eventsGrid.appendChild(card);
+                        
+                        // Partition Data
+                        // First, if it's exactly today:
+                        if (dateObj.toDateString() === now.toDateString()) {
+                            containers.today.appendChild(card.cloneNode(true));
+                        } else if (dateObj < now) {
+                            // If strictly in the past (before today)
+                            containers.past.appendChild(card.cloneNode(true));
+                            return; // Stop partitioning for past events
+                        } else {
+                            // If strictly upcoming (future)
+                            containers.all.appendChild(card.cloneNode(true));
+                        }
+
+                        // Also place it in custom categorical sections if it qualifies
+                        if (ev.isTopEvent === true) {
+                            containers.top.appendChild(card.cloneNode(true));
+                        }
+                        
+                        const uInterests = user.areaOfInterest ? user.areaOfInterest.toLowerCase() : "";
+                        let matches = false;
+                        if (ev.category && uInterests.includes(ev.category.toLowerCase())) matches = true;
+                        
+                        if (matches) {
+                            containers.match.appendChild(card.cloneNode(true));
+                        }
                     });
 
-                    // Add Favorite listeners
+                    // Heart icon logic wrapper
                     document.querySelectorAll('.event-fav-btn').forEach(btn => {
-                        btn.addEventListener('click', async function (e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const evId = this.getAttribute('data-id');
-                            const favRes = await fetch('/api/favorites', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ userId: user.id, eventId: evId })
-                            });
-                            const favData = await favRes.json();
-                            if (favData.status === 'added') {
-                                this.classList.add('active');
-                            } else {
-                                this.classList.remove('active');
-                            }
+                        btn.addEventListener('click', async function(e) {
+                            e.preventDefault(); e.stopPropagation();
+                            try {
+                                const evId = this.getAttribute('data-id');
+                                const favRes = await fetch('/api/favorites', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ userId: user.id, eventId: evId })
+                                });
+                                const favData = await favRes.json();
+                                if (favData.status === 'added') this.style.color = 'var(--primary)';
+                                else this.style.color = '#ccc';
+                            } catch(err){}
                         });
                     });
+
+                    // Add Empty State handling
+                    Object.keys(containers).forEach(k => {
+                        if(containers[k].children.length === 0) {
+                            containers[k].innerHTML = `<div style="padding: 1rem; color:var(--text-secondary); font-style: italic;">No events available in this section.</div>`;
+                        }
+                    });
+
                 } catch (e) {
-                    eventsGrid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1; color: red;">Error fetching events.</p>';
+                    console.error("Failed to load events", e);
                 }
             }
 
-            // Filters
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                    e.target.classList.add('active');
-                    currentCategory = e.target.getAttribute('data-cat');
-                    if (document.getElementById('categoryHighlight')) {
-                        document.getElementById('categoryHighlight').textContent = currentCategory ? currentCategory + ' events' : 'events';
-                    }
-                    loadEvents();
+            // Make sure these are globally bindable
+            window.bindFilterClick = function() {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        currentCategory = e.target.getAttribute('data-cat');
+                        loadEvents();
+                    });
                 });
-            });
+            };
+            window.bindFilterClick();
 
             // Search
             let searchTimeout;
@@ -444,39 +720,136 @@
                 }, 500);
             });
 
-            // Auto Slider logic
+            // Slide Track animation
             const slideTrack = document.getElementById('slideTrack');
-            let currentSlide = 0;
-            const slideCount = 3;
+            let currentSlide = 0;   
             setInterval(() => {
-                currentSlide = (currentSlide + 1) % slideCount;
+                currentSlide = (currentSlide + 1) % 3;
                 slideTrack.style.transform = `translateX(-${currentSlide * 33.333}%)`;
-            }, 3000);
+            }, 4000);
 
-            // Side Drawer menu integration
+            // Auto-swipe for Event Rows
+            document.querySelectorAll('.event-row').forEach(row => {
+                let interval = setInterval(() => {
+                    if(row.children.length > 0) {
+                        if (row.scrollLeft + row.clientWidth >= row.scrollWidth - 10) {
+                            row.scrollTo({left: 0, behavior: 'smooth'});
+                        } else {
+                            row.scrollBy({left: 315, behavior: 'smooth'});
+                        }
+                    }
+                }, 3500);
+                
+                row.addEventListener('mouseenter', () => clearInterval(interval));
+                row.addEventListener('mouseleave', () => {
+                    interval = setInterval(() => {
+                        if(row.children.length > 0) {
+                            if (row.scrollLeft + row.clientWidth >= row.scrollWidth - 10) row.scrollTo({left: 0, behavior: 'smooth'});
+                            else row.scrollBy({left: 315, behavior: 'smooth'});
+                        }
+                    }, 3500);
+                });
+            });
+
+            // Drawer
             document.getElementById('hamburgerBtn').addEventListener('click', () => {
                 document.getElementById('sideDrawer').style.right = '0';
                 document.getElementById('drawerOverlay').style.display = 'block';
                 document.getElementById('menuUserName').textContent = user.name;
             });
-            document.getElementById('closeDrawer').addEventListener('click', closeMenuDrawer);
-            document.getElementById('drawerOverlay').addEventListener('click', closeMenuDrawer);
-
             function closeMenuDrawer() {
                 document.getElementById('sideDrawer').style.right = '-350px';
                 document.getElementById('drawerOverlay').style.display = 'none';
             }
+            document.getElementById('closeDrawer').addEventListener('click', closeMenuDrawer);
+            document.getElementById('drawerOverlay').addEventListener('click', closeMenuDrawer);
 
-            // Logout
             document.getElementById('logoutBtn').addEventListener('click', (e) => {
                 e.preventDefault();
                 localStorage.removeItem('user');
                 window.location.href = 'index.html';
             });
 
+            // Modals: Notifications & Tickets
+            const showNotificationsModal = async (e) => {
+                e.preventDefault(); closeMenuDrawer();
+                document.getElementById('notificationsModal').classList.add('active');
+                const contentDiv = document.getElementById('notificationsContent');
+                contentDiv.innerHTML = '<p>Loading...</p>';
+                try {
+                    const res = await fetch(`/api/bookings/user/${user.id}`);
+                    const bookings = await res.json();
+                    if(bookings.length === 0) {
+                        contentDiv.innerHTML = '<div style="text-align: center; padding: 2rem 0; color: var(--text-secondary);"><i class="fa-regular fa-bell" style="font-size: 3rem; margin-bottom: 1rem; opacity:0.5;"></i><p>Events are waiting for your booking</p></div>';
+                    } else {
+                        let html = '';
+                        bookings.forEach(b => {
+                            html += `
+                                <div style="padding: 1rem; border-bottom: 1px solid var(--border-color); display: flex; gap: 1rem; align-items: center;">
+                                    <div style="background: rgba(232, 83, 58, 0.1); color: var(--primary); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                                        <i class="fa-regular fa-calendar-check"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: bold;">${b.event.title} Booked!</div>
+                                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Date: ${new Date(b.event.dateTime).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        contentDiv.innerHTML = html;
+                    }
+                } catch(e) {}
+            };
+            document.getElementById('navNotificationsBtn').addEventListener('click', showNotificationsModal);
+            document.getElementById('closeNotificationsModal').addEventListener('click', () => document.getElementById('notificationsModal').classList.remove('active'));
+
+            const showTicketsModal = async (e) => {
+                e.preventDefault(); closeMenuDrawer();
+                document.getElementById('ticketsModal').classList.add('active');
+                const contentDiv = document.getElementById('ticketsContent');
+                contentDiv.innerHTML = '<p>Loading...</p>';
+                try {
+                    const res = await fetch(`/api/bookings/user/${user.id}`);
+                    const bookings = await res.json();
+                    if(bookings.length === 0) {
+                        contentDiv.innerHTML = '<div style="text-align: center; padding: 2rem 0; color: var(--text-secondary);"><i class="fa-solid fa-ticket" style="font-size: 3rem; margin-bottom: 1rem; opacity:0.5;"></i><p>No tickets found</p></div>';
+                    } else {
+                        let html = '';
+                        bookings.forEach(b => {
+                            // Generate unique Ticket ID pseudo hash
+                            const tktId = 'TKT-' + b.id.toString().padStart(4, '0') + '-' + Math.random().toString(36).substring(2,6).toUpperCase();
+                            const dateString = new Date(b.event.dateTime).toLocaleString();
+                            html += `
+                                <div style="padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; background: var(--input-bg);">
+                                    <div>
+                                        <div style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 0.5rem;">CONFIRMED</div>
+                                        <h3 style="margin-bottom: 0.2rem;">${b.event.title}</h3>
+                                        <div style="color: var(--text-secondary); font-size: 0.9rem;">${b.event.venue}, ${b.event.city}</div>
+                                        <div style="color: var(--text-secondary); font-size: 0.9rem;">${dateString}</div>
+                                        <div style="margin-top: 0.5rem; background: var(--bg-nav); padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; border: 1px solid var(--border-color); display:inline-block;">Code: ${tktId} | Qty: ${b.tickets}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <i class="fa-solid fa-qrcode" style="font-size: 4rem;"></i>
+                                        <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 5px;">Book #${b.id}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        contentDiv.innerHTML = html;
+                    }
+                } catch(e) {}
+            };
+            document.getElementById('navTicketsBtn').addEventListener('click', showTicketsModal);
+            document.getElementById('closeTicketsModal').addEventListener('click', () => document.getElementById('ticketsModal').classList.remove('active'));
+
+            document.getElementById('navContactBtn').addEventListener('click', (e) => {
+                e.preventDefault(); closeMenuDrawer();
+                document.getElementById('contactModal').classList.add('active');
+            });
+            document.getElementById('closeContactModal').addEventListener('click', () => document.getElementById('contactModal').classList.remove('active'));
+
             loadEvents();
         });
     </script>
 </body>
-
 </html>

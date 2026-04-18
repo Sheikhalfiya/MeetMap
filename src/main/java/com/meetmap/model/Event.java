@@ -30,6 +30,9 @@ public class Event {
     
     @Column(length = 1000)
     private String imageUrl;
+    
+    @Column(columnDefinition = "boolean default false")
+    private Boolean isTopEvent = false;
 
     public Event() {}
 
@@ -53,4 +56,6 @@ public class Event {
     public void setMapCoordinates(String mapCoordinates) { this.mapCoordinates = mapCoordinates; }
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public Boolean getIsTopEvent() { return isTopEvent; }
+    public void setIsTopEvent(Boolean isTopEvent) { this.isTopEvent = isTopEvent; }
 }
